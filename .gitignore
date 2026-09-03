@@ -1,0 +1,23 @@
+# Python / Django
+venv/
+__pycache__/
+*.pyc
+*.pyo
+db.sqlite3
+
+# Secrets - NEVER commit these
+.env
+*.env
+
+# Uploaded files & build output
+media/
+staticfiles/
+
+# Node (frontend, later)
+node_modules/
+dist/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
