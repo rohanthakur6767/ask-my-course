@@ -1,0 +1,22 @@
+# Ask My Course - backend dependencies
+# Install everything with:  pip install -r requirements.txt
+# Versions are pinned to exactly what the project was built and tested against,
+# so anyone cloning the repo (or the Docker image later) gets the same setup.
+
+# --- Web framework ---
+Django==6.1.1                 # the web framework itself
+djangorestframework==3.18.0   # builds our JSON API (the /ask and /ingest endpoints)
+django-cors-headers==4.9.0    # lets the React frontend (a different port) call this API
+
+# --- Database ---
+psycopg2-binary==2.9.12       # the driver Django uses to talk to PostgreSQL
+pgvector==0.5.0               # adds the vector column type and the HNSW similarity index
+
+# --- PDF parsing ---
+PyMuPDF==1.28.2               # opens PDFs and pulls out text page by page (imported as 'fitz')
+
+# --- AI ---
+openai==3.7.0                 # embeddings (text-embedding-3-small) + answers (gpt-4o-mini)
+
+# --- Config / secrets ---
+python-dotenv==1.2.3          # loads DB password and API key from the .env file
