@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'rest_framework',   # DRF - our JSON API
     'corsheaders',      # lets React call the API
     'courses',          # our app (models + endpoints)
+    'django.contrib.postgres' # unlocks Postgres-only features, needed for HnswIndex
 ]
 
 MIDDLEWARE = [

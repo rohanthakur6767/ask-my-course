@@ -1,5 +1,6 @@
 from django.db import models
 import uuid #unique user ID
+from pgvector.django import VectorField, HnswIndex
 
 # Create your models here.
 class Course(models.Model):
@@ -58,4 +59,87 @@ class Material(models.Model):
         def __str__(self):
             return self.file_name
 
-    
+class Embedding(models.Model):
+        """One chunk of a material, stored as text AND as a vector.
+        When a student asks something, we turn the question into a vector too,
+        then ask Postgres which chunks are closest in meaning."""
+
+        id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+        # Which material this chunk came from. Delete the material, its chunks go too.
+        material = models.ForeignKey(
+        Material, on_delete=models.CASCADE, related_name="embeddings"
+        )
+
+        # Copied here on purpose (denormalized) so "all chunks for course X" is one
+        # fast filter at answer time, not going back to other table 
+        course = models.ForeignKey(
+            Course, on_delete=models.CASCADE, related_name="embeddings"
+        )
+
+        chunk_text = models.TextField()               # the actual words of this chunk
+        chunk_index = models.PositiveIntegerField()   # tells us the position/order of a chunk inside the original material.
+
+        # Where the chunk lives, used to build the citation. A typed note has no page.
+        page_number = models.PositiveIntegerField(null=True, blank=True)
+
+        # Copied here so we can write "Unit -> Lesson -> Page" without extra lookups.
+        unit_name = models.CharField(max_length=255, blank=True)
+        lesson_name = models.CharField(max_length=255, blank=True)
+
+        # The vector itself: 1536 numbers from OpenAI's text-embedding-3-small.
+        embedding = VectorField(dimensions=1536)
+
+        created_at = models.DateTimeField(auto_now_add=True)
+
+        class Meta:
+            indexes = [
+            # HNSW graph index: great recall, works on an empty table,+
+            # m = neighbours per node (16 = standard default).
+            # ef_construction = build effort (higher = better index, slower build).
+            # vector_cosine_ops = compare by cosine, what OpenAI embeddings expect.
+            HnswIndex(
+                name="embedding_vector_idx",
+                fields=["embedding"],
+                m=16,
+                ef_construction=64,
+                opclasses=["vector_cosine_ops"],
+            )
+        ]
+
+        def __str__(self):
+            return f"{self.material.file_name} - chunk {self.chunk_index}"
+
+class ChatSession(models.Model):
+        """One question-and-answer exchange with a student.
+        A history log: one row = one ask. Powers the /history endpoint and,
+        later, our evaluation numbers. (Not conversation memory; that is a
+        separate stretch feature.)
+        """
+        id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+        course = models.ForeignKey(
+            Course, on_delete=models.CASCADE, related_name="chat_sessions"
+        )
+
+        # Who asked, as sent by the LMS. Optional for now while we build and test.
+        user_id = models.CharField(max_length=255, blank=True)
+
+        question = models.TextField()
+        answer = models.TextField()
+
+        # The citations we returned, stored as JSON so the shape stays flexible:
+        # e.g. [{"unit": "...", "lesson": "...", "page": 4, "score": 0.82}].
+        # default=list means a new row starts as an empty list [].
+        sources = models.JSONField(default=list, blank=True)
+
+        confidence = models.FloatField(default=0.0)          # 0.0 to 1.0, how sure we are
+        guardrail_triggered = models.BooleanField(default=False)  # True when we refused
+
+        created_at = models.DateTimeField(auto_now_add=True)
+
+        class Meta:
+            ordering = ["-created_at"]   # newest first, which the history endpoint wants
+
+        def __str__(self):
+            return self.question[:50]
+        
