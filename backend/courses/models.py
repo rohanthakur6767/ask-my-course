@@ -17,7 +17,7 @@ class Course(models.Model):
 
 class Unit(models.Model):
         """A unit inside a course, e.g. 'Cell Biology'."""
-        id = id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+        id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
         course = models.ForeignKey(Course, on_delete=models.CASCADE # foreign key: a link to another table. a unit belongs to one course, and if the course is deleted, its units go too
                                    , related_name="units") # used to get the course's units
         name = models.CharField(max_length=255)
@@ -35,17 +35,7 @@ class Lesson(models.Model):
 
         def __str__(self):
             return self.name
-
-class Lesson(models.Model):
-        """A lesson inside a unit, e.g. 'Organelles and their functions'."""
-        id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-        unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name="lessons")
-        name = models.CharField(max_length=255)
-        sort_order = models.PositiveIntegerField(default=0)
-
-        def __str__(self):
-            return self.name
-
+        
 class Material(models.Model):
         """A file or note a teacher adds to a lesson:
         a PDF, the syllabus, or a typed note."""
