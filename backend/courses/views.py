@@ -1,13 +1,19 @@
+import os
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
+from django.conf import settings
+from django.core.files.storage import default_storage
+from django.db import connection
 from django.db.models import Count
 
 from courses.models import Course, Material, ChatSession
 from courses.serializers import (
-    IngestSerializer,
     AskSerializer,
+    CourseSerializer,
     CourseStructureSerializer,
     MaterialListSerializer,
     ChatSessionSerializer,
@@ -19,22 +25,103 @@ from courses.services.ask import answer_question, AskError
 from courses.services.generator import GenerationError
 
 
+def _save_upload(course_id, uploaded_file):
+    """Save an uploaded file under media/uploads/<course_id>/ and return its full path."""
+    rel_path = os.path.join("uploads", str(course_id), uploaded_file.name)
+    saved_name = default_storage.save(rel_path, uploaded_file)   # adds a suffix if the name exists
+    return default_storage.path(saved_name)
+
+
+class CourseListCreateView(APIView):
+    """GET  /api/v1/courses  -> list courses for the demo tenant
+       POST /api/v1/courses  -> create a course"""
+
+    def get(self, request):
+        courses = (
+            Course.objects
+            .filter(tenant_id=settings.DEMO_TENANT_ID)
+            .order_by("-created_at")
+        )
+        return Response(CourseSerializer(courses, many=True).data)
+
+    def post(self, request):
+        serializer = CourseSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        course = serializer.save(tenant_id=settings.DEMO_TENANT_ID)
+        return Response(CourseSerializer(course).data, status=status.HTTP_201_CREATED)
+
+
+class StatsView(APIView):
+    """GET /api/v1/stats -> totals for the demo tenant (powers the dashboard KPIs)."""
+
+    def get(self, request):
+        tenant = settings.DEMO_TENANT_ID
+        return Response({
+            "courses": Course.objects.filter(tenant_id=tenant).count(),
+            "materials": Material.objects.filter(lesson__unit__course__tenant_id=tenant).count(),
+            "questions": ChatSession.objects.filter(course__tenant_id=tenant).count(),
+        })
+
+
+class HealthView(APIView):
+    """GET /api/v1/health -> liveness + database connectivity check."""
+
+    def get(self, request):
+        try:
+            connection.ensure_connection()
+            db_ok = True
+        except Exception:
+            db_ok = False
+        return Response(
+            {"status": "ok" if db_ok else "degraded", "database": "ok" if db_ok else "error"},
+            status=status.HTTP_200_OK if db_ok else status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+
+
 class IngestView(APIView):
-    """POST /api/v1/courses/<course_id>/ingest"""
+    """POST /api/v1/courses/<course_id>/ingest
+
+    Accepts either a multipart file upload (field 'file'), used by the dashboard,
+    or a JSON body with 'file_path', used by scripts. Plus unit_name, lesson_name,
+    material_type.
+    """
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def post(self, request, course_id):
-        # Validate the body. Bad input becomes an automatic 400 with details.
-        serializer = IngestSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
+        unit_name = request.data.get("unit_name", "")
+        lesson_name = request.data.get("lesson_name", "")
+        material_type = request.data.get("material_type", Material.MaterialType.PDF)
+
+        # material_type must be a known choice, else fall back to the default.
+        if material_type not in Material.MaterialType.values:
+            material_type = Material.MaterialType.PDF
+
+        uploaded = request.FILES.get("file")
+        if uploaded:
+            file_name = uploaded.name
+            file_type = os.path.splitext(file_name)[1].lstrip(".").lower() or "pdf"
+            try:
+                file_path = _save_upload(course_id, uploaded)
+            except Exception as error:
+                return Response({"error": f"Could not save the upload: {error}"},
+                                status=status.HTTP_400_BAD_REQUEST)
+        else:
+            file_path = str(request.data.get("file_path", "")).strip()
+            if not file_path:
+                return Response({"error": "Provide a file upload or a file_path."},
+                                status=status.HTTP_400_BAD_REQUEST)
+            file_name = ""
+            file_type = "pdf"
 
         try:
             result = ingest_material(
                 course_id=str(course_id),
-                file_path=data["file_path"],
-                unit_name=data["unit_name"],
-                lesson_name=data["lesson_name"],
-                material_type=data["material_type"],
+                file_path=file_path,
+                unit_name=unit_name,
+                lesson_name=lesson_name,
+                file_name=file_name,
+                file_type=file_type,
+                material_type=material_type,
             )
         except (IngestError, PdfExtractionError, EmbeddingError) as error:
             # Known failures return a clean message, not a 500 stack trace.

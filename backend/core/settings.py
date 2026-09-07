@@ -142,3 +142,11 @@ USE_FAKE_EMBEDDINGS = os.getenv("USE_FAKE_EMBEDDINGS", "true").lower() == "true"
 # Use a fake local answer until the OpenAI key arrives. Flip to false in .env
 # (with the key) to use real GPT-4o-mini.
 USE_FAKE_LLM = os.getenv("USE_FAKE_LLM", "true").lower() == "true"
+
+# --- Media (teacher-uploaded course files) ---
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+# One demo tenant (school) until real login / multi-tenant auth exists.
+# Every course created through the API belongs to this tenant for now.
+DEMO_TENANT_ID = "00000000-0000-0000-0000-000000000001"

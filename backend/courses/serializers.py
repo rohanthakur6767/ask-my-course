@@ -19,6 +19,14 @@ class AskSerializer(serializers.Serializer):
     top_k = serializers.IntegerField(required=False, default=5, min_value=1, max_value=20)
 
 
+class CourseSerializer(serializers.ModelSerializer):
+    """Read and create a course. tenant_id is set on the server, not by the client."""
+    class Meta:
+        model = Course
+        fields = ["id", "name", "description", "created_at"]
+        read_only_fields = ["id", "created_at"]
+
+
 # --- Course structure (nested tree for the teacher dashboard) ---
 class MaterialSerializer(serializers.ModelSerializer):
     class Meta:

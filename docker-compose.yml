@@ -1,0 +1,42 @@
+# One-command local stack: Postgres (with pgvector) + the Django backend.
+# Run with:  docker compose up --build
+# Values fall back to sensible defaults if not set in your shell / .env.
+
+services:
+  db:
+    image: pgvector/pgvector:pg16   # Postgres with the pgvector extension available
+    environment:
+      POSTGRES_DB: ${DB_NAME:-ask_my_course}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - pgdata:/var/lib/postgresql/data   # keep data across restarts
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: ./backend
+    # Apply migrations (which also enables the pgvector extension), then serve.
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    environment:
+      DB_NAME: ${DB_NAME:-ask_my_course}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_HOST: db          # the database service name above
+      DB_PORT: 5432
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      USE_FAKE_EMBEDDINGS: ${USE_FAKE_EMBEDDINGS:-true}
+      USE_FAKE_LLM: ${USE_FAKE_LLM:-true}
+    depends_on:
+      db:
+        condition: service_healthy   # wait until Postgres is ready
+    ports:
+      - "8000:8000"
+
+volumes:
+  pgdata:
