@@ -11,3 +11,7 @@ class IngestSerializer(serializers.Serializer):
         choices=Material.MaterialType.choices,
         required=False, default=Material.MaterialType.PDF,
     )
+
+class AskSerializer(serializers.Serializer):
+    question = serializers.CharField()
+    top_k = serializers.IntegerField(required=False, default=5, min_value=1, max_value=20)    

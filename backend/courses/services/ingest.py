@@ -22,7 +22,6 @@ from courses.services.embedder import embed_texts
 
 # Course-wide materials (like a syllabus) may not belong to a real lesson, so
 # they land under these clearly named defaults. Kept as constants here, not as
-# magic strings scattered through the code.
 DEFAULT_UNIT_NAME = "Course Information"
 DEFAULT_LESSON_NAME = "General"
 
@@ -126,7 +125,7 @@ def ingest_material(
             )
             for chunk, vector in zip(chunks, vectors)
         ]
-        Embedding.objects.bulk_create(rows)
+        Embedding.objects.bulk_create(rows) # Insert all embedding rows into the database in one bulk operation.
 
     elapsed_ms = int((time.monotonic() - started) * 1000)
 

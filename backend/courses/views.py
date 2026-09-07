@@ -7,6 +7,10 @@ from courses.services.ingest import ingest_material, IngestError
 from courses.services.pdf_extractor import PdfExtractionError
 from courses.services.embedder import EmbeddingError
 
+from courses.serializers import AskSerializer
+from courses.services.ask import answer_question, AskError
+from courses.services.embedder import EmbeddingError
+from courses.services.generator import GenerationError
 
 class IngestView(APIView):
     """POST /api/v1/courses/<course_id>/ingest"""
@@ -30,3 +34,23 @@ class IngestView(APIView):
             return Response({"error": str(error)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(result, status=status.HTTP_201_CREATED)
+
+class AskView(APIView):
+    """POST /api/v1/courses/<course_id>/ask"""
+
+    def post(self, request, course_id):
+        serializer = AskSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        try:
+            result = answer_question(
+                course_id=str(course_id),
+                question=data["question"],
+                user_id=request.data.get("user_id", ""),
+                top_k=data["top_k"],
+            )
+        except (AskError, EmbeddingError, GenerationError) as error:
+            return Response({"error": str(error)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(result, status=status.HTTP_200_OK)    
