@@ -45,11 +45,8 @@ DB_PASSWORD=your_password
 DB_HOST=localhost
 DB_PORT=5432
 
-# Leave these as-is to run fully offline with fake embeddings.
-# When you have an OpenAI key, add it and flip both to false.
-OPENAI_API_KEY=
-USE_FAKE_EMBEDDINGS=true
-USE_FAKE_LLM=true
+# Required: used for embeddings and answers.
+OPENAI_API_KEY=your_openai_key_here
 ```
 
 Enable pgvector once in your database (`psql -d ask_my_course`):
@@ -78,16 +75,11 @@ npm run dev
 Open `http://localhost:5173`. The dev server's origin is already allowed by the
 backend's CORS settings. To point at a different API, set `VITE_API_URL`.
 
-## Switching from fake to real AI
+## OpenAI key
 
-The project runs offline out of the box using deterministic **fake** embeddings
-and a stub answer, so you can build and demo without an API key. When the OpenAI
-key is ready:
-
-1. Put the key in `backend/.env` as `OPENAI_API_KEY`.
-2. Set `USE_FAKE_EMBEDDINGS=false` and `USE_FAKE_LLM=false`.
-3. **Re-ingest** your materials (fake and real vectors are not comparable, so the
-   old fake vectors must be replaced).
+The service needs an OpenAI key for embeddings and answers. Put it in
+`backend/.env` as `OPENAI_API_KEY`. If you ever change the key or switch
+embedding model, re-ingest your materials so all stored vectors stay consistent.
 
 ## API endpoints (all under `/api/v1/`)
 

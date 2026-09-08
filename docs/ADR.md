@@ -118,3 +118,27 @@ each embedding row when it is created.
   query, with no extra joins on the hot path.
 - Give up: some duplication, and the copies could go stale if a unit is renamed.
   Chunks are effectively write-once (re-ingest on change), so the risk is small.
+
+---
+
+## ADR 7 - PDF auto-structuring with teacher confirmation
+
+**Status:** Accepted (build pending the OpenAI key)
+
+**Context.** A single PDF often spans many units and lessons. Making the teacher
+split the file or hand-label every part is tedious; dumping the whole file under
+one label makes citations coarse.
+
+**Decision.** On upload, the LLM proposes an outline (units -> lessons with page
+ranges) from the document's text. The teacher reviews and edits it, then
+confirms. On confirm, each lesson segment is ingested separately: its page range
+is chunked, embedded, and stored under the right unit and lesson, so citations
+stay precise. A single-unit fallback remains for PDFs with no clear headings or
+when the teacher skips auto-structure.
+
+**Consequences.**
+- Gain: one upload builds a full Course -> Unit -> Lesson tree; precise
+  citations; near-zero teacher effort; no silent guessing (the confirm step).
+- Give up: one extra LLM call and a two-step upload flow; quality depends on the
+  PDF having detectable headings; one PDF becomes several Material rows (one per
+  lesson segment).

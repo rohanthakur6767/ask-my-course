@@ -1,6 +1,4 @@
-import hashlib
-import math
-import random
+"""Turn chunk text into embeddings (vectors) using OpenAI."""
 
 from django.conf import settings
 from openai import OpenAI
@@ -10,31 +8,31 @@ from openai import OpenAI
 EMBEDDING_MODEL = "text-embedding-3-small"
 EMBEDDING_DIMENSIONS = 1536
 
-# How many texts to send to OpenAI in one request.
+# How many texts to send to OpenAI in one request (stay well under its limits).
 EMBED_BATCH_SIZE = 100
 
 
 class EmbeddingError(Exception):
-    """Raised when we cannot produce embeddings (bad key, network, wrong size)."""
+    """Raised when we cannot produce embeddings (missing key, network, wrong size)."""
     pass
 
 
-def _fake_embedding(text: str) -> list[float]:
-    """A deterministic, unit-length fake vector for offline testing."""
-    # sha256 gives a STABLE number from the text. We avoid Python's built-in
-    # hash(), because it is randomized per run, so the same text would give a
-    # different vector each time you restart, which would break testing.
-    seed = int.from_bytes(hashlib.sha256(text.encode("utf-8")).digest()[:8], "big")
-    rng = random.Random(seed)
-    vector = [rng.gauss(0, 1) for _ in range(EMBEDDING_DIMENSIONS)]
+def embed_texts(texts: list[str]) -> list[list[float]]:
+    """Turn a list of texts into 1536-dim embedding vectors, in safe batches.
 
-    # Normalize to length 1, so cosine similarity behaves sensibly.
-    length = math.sqrt(sum(value * value for value in vector)) or 1.0
-    return [value / length for value in vector]
+    Args:
+        texts: the chunk texts to embed.
 
+    Returns:
+        One vector per input text, in the same order.
 
-def _embed_with_openai(texts: list[str]) -> list[list[float]]:
-    """Call OpenAI to embed a list of texts, in safe-sized batches."""
+    Raises:
+        EmbeddingError: if the key is missing, the request fails, or a vector
+            comes back the wrong size.
+    """
+    if not texts:
+        return []
+
     api_key = settings.OPENAI_API_KEY
     if not api_key:
         raise EmbeddingError("OPENAI_API_KEY is not set")
@@ -42,7 +40,6 @@ def _embed_with_openai(texts: list[str]) -> list[list[float]]:
     client = OpenAI(api_key=api_key)
     vectors: list[list[float]] = []
 
-    # Send the texts in batches so one request never gets too large.
     for start in range(0, len(texts), EMBED_BATCH_SIZE):
         batch = texts[start:start + EMBED_BATCH_SIZE]
         try:
@@ -54,22 +51,8 @@ def _embed_with_openai(texts: list[str]) -> list[list[float]]:
         for item in response.data:
             vectors.append(item.embedding)
 
-    return vectors
-
-
-def embed_texts(texts: list[str]) -> list[list[float]]:
-    #Turn a list of texts into a list of embedding vectors.
-  
-    if not texts:
-        return []
-
-    if getattr(settings, "USE_FAKE_EMBEDDINGS", True):
-        vectors = [_fake_embedding(text) for text in texts]
-    else:
-        vectors = _embed_with_openai(texts)
-
-    # every vector must be the right length, or the later database
-    # insert into VectorField(1536) will fail with a confusing error.
+    # Every vector must be the right length, or the VectorField(1536) insert
+    # will later fail with a confusing error.
     for vector in vectors:
         if len(vector) != EMBEDDING_DIMENSIONS:
             raise EmbeddingError(

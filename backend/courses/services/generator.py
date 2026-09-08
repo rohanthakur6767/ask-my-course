@@ -1,4 +1,4 @@
-"""Generation: turn retrieved chunks into a grounded answer."""
+"""Turn retrieved chunks into a grounded answer using OpenAI."""
 
 from django.conf import settings
 from openai import OpenAI
@@ -30,29 +30,13 @@ def _build_context(chunks: list[RetrievedChunk]) -> str:
     return "\n\n".join(parts)
 
 
-def _fake_answer(question: str, chunks: list[RetrievedChunk]) -> str:
-    """Offline stub: no LLM, just prove the context flows through."""
-    if not chunks:
-        return "I could not find this in the course materials."
-    top = chunks[0]
-    return (
-        f"(offline draft) From {top.unit_name} > {top.lesson_name} "
-        f"(page {top.page_number}): {top.chunk_text[:200]}"
-    )
-
-
 def generate_answer(question: str, chunks: list[RetrievedChunk]) -> str:
     """Write an answer to the question, grounded in the given chunks."""
-    if getattr(settings, "USE_FAKE_LLM", True):
-        return _fake_answer(question, chunks)
-
     api_key = settings.OPENAI_API_KEY
     if not api_key:
         raise GenerationError("OPENAI_API_KEY is not set")
 
-    user_prompt = (
-        f"Course excerpts:\n{_build_context(chunks)}\n\nQuestion: {question}"
-    )
+    user_prompt = f"Course excerpts:\n{_build_context(chunks)}\n\nQuestion: {question}"
 
     client = OpenAI(api_key=api_key)
     try:

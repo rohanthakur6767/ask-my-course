@@ -132,16 +132,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5174",
 ]
 
-# --- AI / embeddings ---
+# --- AI / OpenAI (required) ---
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-
-# Use fake local embeddings until Shivam's OpenAI key arrives. When the key is
-# ready, put it in .env and set USE_FAKE_EMBEDDINGS=false there.
-USE_FAKE_EMBEDDINGS = os.getenv("USE_FAKE_EMBEDDINGS", "true").lower() == "true"
-
-# Use a fake local answer until the OpenAI key arrives. Flip to false in .env
-# (with the key) to use real GPT-4o-mini.
-USE_FAKE_LLM = os.getenv("USE_FAKE_LLM", "true").lower() == "true"
 
 # --- Media (teacher-uploaded course files) ---
 MEDIA_URL = "/media/"
