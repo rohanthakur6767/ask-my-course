@@ -54,6 +54,18 @@ export default function TeacherCourses() {
     }
   }
 
+  async function handleDelete(course, e) {
+    e.stopPropagation();   // don't open the course when clicking Delete
+    if (!window.confirm(`Delete "${course.name}" and all its materials? This cannot be undone.`)) return;
+    try {
+      await api.deleteCourse(course.id);
+      setCourses((prev) => (prev || []).filter((c) => c.id !== course.id));
+      api.getStats().then(setStats).catch(() => {});   // refresh the KPIs
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
   return (
     <div>
       <div className="page-head">
@@ -127,7 +139,12 @@ export default function TeacherCourses() {
                      onKeyDown={(e) => { if (e.key === "Enter") navigate(`/teacher/courses/${c.id}`); }}>
                   <h3>{c.name}</h3>
                   <p className="desc">{c.description || "No description."}</p>
-                  <div className="meta">Created {formatDate(c.created_at)}</div>
+                  <div className="meta">
+                    <span>Created {formatDate(c.created_at)}</span>
+                    <button className="card-del" aria-label={`Delete ${c.name}`}
+                            onClick={(e) => handleDelete(c, e)}
+                            onKeyDown={(e) => e.stopPropagation()}>Delete</button>
+                  </div>
                 </div>
               ))}
             </div>

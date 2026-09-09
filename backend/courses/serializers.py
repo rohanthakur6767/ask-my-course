@@ -17,6 +17,7 @@ class AskSerializer(serializers.Serializer):
     """Checks the POST body for /ask."""
     question = serializers.CharField()
     top_k = serializers.IntegerField(required=False, default=5, min_value=1, max_value=20)
+    conversation_id = serializers.UUIDField(required=False, allow_null=True)
 
 
 class CourseSerializer(serializers.ModelSerializer):

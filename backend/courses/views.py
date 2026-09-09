@@ -1,3 +1,4 @@
+import json
 import os
 
 from rest_framework.views import APIView
@@ -18,11 +19,13 @@ from courses.serializers import (
     MaterialListSerializer,
     ChatSessionSerializer,
 )
-from courses.services.ingest import ingest_material, IngestError
-from courses.services.pdf_extractor import PdfExtractionError
+from courses.services.ingest import ingest_material, ingest_structured, IngestError
+from courses.services.pdf_extractor import PdfExtractionError, extract_pages
+from courses.services.outliner import propose_outline, OutlineError
 from courses.services.embedder import EmbeddingError
 from courses.services.ask import answer_question, AskError
 from courses.services.generator import GenerationError
+from courses.services.suggestions import suggest_questions
 
 
 def _save_upload(course_id, uploaded_file):
@@ -49,6 +52,26 @@ class CourseListCreateView(APIView):
         serializer.is_valid(raise_exception=True)
         course = serializer.save(tenant_id=settings.DEMO_TENANT_ID)
         return Response(CourseSerializer(course).data, status=status.HTTP_201_CREATED)
+
+
+class CourseDetailView(APIView):
+    """GET/DELETE /api/v1/courses/<course_id>"""
+
+    def get(self, request, course_id):
+        try:
+            course = Course.objects.get(id=course_id)
+        except Course.DoesNotExist:
+            return Response({"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(CourseSerializer(course).data)
+
+    def delete(self, request, course_id):
+        try:
+            course = Course.objects.get(id=course_id)
+        except Course.DoesNotExist:
+            return Response({"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+        # CASCADE removes the course's units, lessons, materials, embeddings, and chat sessions.
+        course.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class StatsView(APIView):
@@ -78,12 +101,51 @@ class HealthView(APIView):
         )
 
 
+class AnalyzeView(APIView):
+    """POST /api/v1/courses/<course_id>/analyze
+
+    Upload a PDF (multipart 'file'). We save it, extract the text, and ask the
+    LLM to propose an outline (units -> lessons with page ranges). We do NOT
+    ingest yet. The frontend shows the outline for the teacher to edit, then
+    confirms via /ingest with the same file_path and the (edited) outline.
+    """
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, course_id):
+        if not Course.objects.filter(id=course_id).exists():
+            return Response({"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        uploaded = request.FILES.get("file")
+        if not uploaded:
+            return Response({"error": "No file uploaded."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            file_path = _save_upload(course_id, uploaded)
+        except Exception as error:
+            return Response({"error": f"Could not save the upload: {error}"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            pages = extract_pages(file_path)
+            outline = propose_outline(pages)
+        except (PdfExtractionError, OutlineError) as error:
+            return Response({"error": str(error)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            "file_path": file_path,
+            "file_name": uploaded.name,
+            "pages": len(pages),
+            "outline": outline,
+        })
+
+
 class IngestView(APIView):
     """POST /api/v1/courses/<course_id>/ingest
 
-    Accepts either a multipart file upload (field 'file'), used by the dashboard,
-    or a JSON body with 'file_path', used by scripts. Plus unit_name, lesson_name,
-    material_type.
+    Two modes:
+    - Single upload: multipart 'file' (or JSON 'file_path') + unit_name/lesson_name.
+    - Structured: an 'outline' (list of segments) plus the file/file_path; the PDF
+      is split across the outline's units and lessons.
     """
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
@@ -91,11 +153,10 @@ class IngestView(APIView):
         unit_name = request.data.get("unit_name", "")
         lesson_name = request.data.get("lesson_name", "")
         material_type = request.data.get("material_type", Material.MaterialType.PDF)
-
-        # material_type must be a known choice, else fall back to the default.
         if material_type not in Material.MaterialType.values:
             material_type = Material.MaterialType.PDF
 
+        # Where is the file? An upload, or a server path from /analyze.
         uploaded = request.FILES.get("file")
         if uploaded:
             file_name = uploaded.name
@@ -110,21 +171,32 @@ class IngestView(APIView):
             if not file_path:
                 return Response({"error": "Provide a file upload or a file_path."},
                                 status=status.HTTP_400_BAD_REQUEST)
-            file_name = ""
+            file_name = str(request.data.get("file_name", "")).strip()
             file_type = "pdf"
 
+        # Optional outline -> structured ingest. It may arrive as a JSON string
+        # (multipart) or an already-parsed list (JSON body).
+        outline = request.data.get("outline")
+        if isinstance(outline, str):
+            try:
+                outline = json.loads(outline)
+            except json.JSONDecodeError:
+                return Response({"error": "outline is not valid JSON."},
+                                status=status.HTTP_400_BAD_REQUEST)
+
         try:
-            result = ingest_material(
-                course_id=str(course_id),
-                file_path=file_path,
-                unit_name=unit_name,
-                lesson_name=lesson_name,
-                file_name=file_name,
-                file_type=file_type,
-                material_type=material_type,
-            )
+            if outline:
+                result = ingest_structured(
+                    str(course_id), file_path, outline,
+                    file_name=file_name, file_type=file_type, material_type=material_type,
+                )
+            else:
+                result = ingest_material(
+                    str(course_id), file_path,
+                    unit_name=unit_name, lesson_name=lesson_name,
+                    file_name=file_name, file_type=file_type, material_type=material_type,
+                )
         except (IngestError, PdfExtractionError, EmbeddingError) as error:
-            # Known failures return a clean message, not a 500 stack trace.
             return Response({"error": str(error)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(result, status=status.HTTP_201_CREATED)
@@ -144,11 +216,21 @@ class AskView(APIView):
                 question=data["question"],
                 user_id=request.data.get("user_id", ""),
                 top_k=data["top_k"],
+                conversation_id=data.get("conversation_id"),
             )
         except (AskError, EmbeddingError, GenerationError) as error:
             return Response({"error": str(error)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(result, status=status.HTTP_200_OK)
+
+
+class SuggestionsView(APIView):
+    """GET /api/v1/courses/<course_id>/suggestions -> a few starter questions"""
+
+    def get(self, request, course_id):
+        if not Course.objects.filter(id=course_id).exists():
+            return Response({"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"questions": suggest_questions(str(course_id))})
 
 
 class CourseStructureView(APIView):

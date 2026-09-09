@@ -132,8 +132,9 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5174",
 ]
 
-# --- AI / OpenAI (required) ---
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+# --- AI provider: Google Gemini (free tier) via its OpenAI-compatible API ---
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 
 # --- Media (teacher-uploaded course files) ---
 MEDIA_URL = "/media/"

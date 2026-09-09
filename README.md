@@ -8,8 +8,9 @@ guessing (the guardrail).
 
 ## Architecture
 
-- **Backend**: Django + Django REST Framework, PostgreSQL 18 + pgvector, OpenAI
-  (`text-embedding-3-small` for embeddings, `gpt-4o-mini` for answers).
+- **Backend**: Django + Django REST Framework, PostgreSQL 18 + pgvector, and
+  Google Gemini (free tier) via its OpenAI-compatible API (`gemini-embedding-001`
+  at 1536 dims for embeddings, `gemini-3.1-flash-lite` for answers).
 - **Frontend**: React + Vite (a Teacher Dashboard and a Student ask page).
 - **Pipeline**: PDF → extract text (PyMuPDF) → chunk (~400 words) → embed →
   store vectors → retrieve nearest chunks (HNSW cosine) → generate a grounded
@@ -26,6 +27,7 @@ ask-my-course/
 - Python 3.13
 - Node.js 18+ and npm
 - PostgreSQL 18 with the **pgvector** extension installed
+- A Google Gemini API key (free at https://aistudio.google.com/apikey)
 
 ## Backend setup
 
@@ -45,8 +47,8 @@ DB_PASSWORD=your_password
 DB_HOST=localhost
 DB_PORT=5432
 
-# Required: used for embeddings and answers.
-OPENAI_API_KEY=your_openai_key_here
+# Required: Google Gemini key (free at https://aistudio.google.com/apikey).
+GEMINI_API_KEY=your_gemini_key_here
 ```
 
 Enable pgvector once in your database (`psql -d ask_my_course`):
@@ -75,10 +77,11 @@ npm run dev
 Open `http://localhost:5173`. The dev server's origin is already allowed by the
 backend's CORS settings. To point at a different API, set `VITE_API_URL`.
 
-## OpenAI key
+## Gemini key
 
-The service needs an OpenAI key for embeddings and answers. Put it in
-`backend/.env` as `OPENAI_API_KEY`. If you ever change the key or switch
+The service uses Google Gemini's free tier for embeddings and answers, through
+its OpenAI-compatible API. Get a free key at https://aistudio.google.com/apikey
+and put it in `backend/.env` as `GEMINI_API_KEY`. If you change the key or the
 embedding model, re-ingest your materials so all stored vectors stay consistent.
 
 ## API endpoints (all under `/api/v1/`)

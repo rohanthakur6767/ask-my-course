@@ -83,23 +83,30 @@ Dockerfile + docker-compose for reproducible setup and deployment.
 
 ---
 
-## ADR 5 - Offline "fake" AI provider behind settings flags
+## ADR 5 - AI provider: Google Gemini free tier via the OpenAI-compatible API
 
 **Status:** Accepted
 
-**Context.** The OpenAI key was not available during the build, but the whole
-pipeline (ingest, retrieve, generate) needed to be developed and tested.
+**Context.** The brief assumed OpenAI (`text-embedding-3-small` + `gpt-4o-mini`),
+but the company did not provide an OpenAI key. We needed embeddings and answer
+generation at no cost, with minimal code change. (During early development, before
+any key, a temporary deterministic "fake" provider let the pipeline be built and
+tested offline; it has since been removed.)
 
-**Decision.** Put a deterministic fake embedding provider and a stub answer
-behind `USE_FAKE_EMBEDDINGS` and `USE_FAKE_LLM`. The rest of the code always
-calls the same functions.
+**Decision.** Use Google Gemini's free tier through its **OpenAI-compatible API**,
+so we keep the `openai` client and change only the base URL, key, and model names.
+Embeddings: `gemini-embedding-001` requested at **1536 dimensions**, so it matches
+the existing `vector(1536)` column with no migration. Answers: `gemini-3.1-flash-lite`
+(a lite model with a generous free daily limit, which matters for the 50-question
+evaluation; the larger `gemini-3.6-flash` has a very small free quota).
 
 **Consequences.**
-- Gain: the full app runs and is testable offline; switching to real OpenAI is
-  flipping two flags in `.env`.
-- Give up: fake vectors carry no real meaning, so quality cannot be judged in
-  fake mode, and stored fake embeddings must be re-ingested once real embeddings
-  are enabled (the two are not comparable).
+- Gain: zero cost, no dependency on the company for a key, and almost no code
+  change (Gemini speaks OpenAI's API). 1536-dim output means no schema change.
+- Give up: a deviation from the brief's OpenAI models (documented here); free-tier
+  rate limits need care during bulk runs; model availability can shift (we saw
+  `gemini-2.5-flash` deprecated for new keys), so model IDs are pinned in one place
+  and easy to update.
 
 ---
 

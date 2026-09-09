@@ -136,3 +136,96 @@ def ingest_material(
         "pages_processed": len(pages),
         "processing_time_ms": elapsed_ms,
     }
+
+
+def ingest_structured(
+    course_id: str,
+    file_path: str,
+    outline: list[dict],
+    file_name: str = "",
+    file_type: str = "pdf",
+    material_type: str = Material.MaterialType.PDF,
+) -> dict:
+    """Ingest one PDF split across many units/lessons, per a confirmed outline.
+
+    `outline` is a list of {unit, lesson, page_start, page_end}. Each segment
+    becomes its own Material (under its unit + lesson) holding that page range's
+    chunks, so a single PDF builds a full Course -> Unit -> Lesson tree.
+    """
+    started = time.monotonic()
+
+    try:
+        course = Course.objects.get(id=course_id)
+    except Course.DoesNotExist:
+        raise IngestError(f"Course not found: {course_id}")
+    if not outline:
+        raise IngestError("Outline is empty")
+
+    file_name = (file_name or Path(file_path).name).strip()
+
+    # --- Heavy work first (extract, chunk, embed), outside the transaction ---
+    pages = extract_pages(file_path)
+    page_by_num = {p.page_number: p for p in pages}
+
+    prepared = []       # (unit_name, lesson_name, [chunks]) for each non-empty segment
+    all_texts = []
+    for seg in outline:
+        unit_name = (str(seg.get("unit", "")) or DEFAULT_UNIT_NAME).strip()
+        lesson_name = (str(seg.get("lesson", "")) or DEFAULT_LESSON_NAME).strip()
+        start = int(seg.get("page_start", 1))
+        end = int(seg.get("page_end", start))
+        seg_pages = [page_by_num[n] for n in range(start, end + 1) if n in page_by_num]
+        chunks = chunk_pages(seg_pages)
+        if not chunks:
+            continue
+        prepared.append((unit_name, lesson_name, chunks))
+        all_texts.extend(c.text for c in chunks)
+
+    if not all_texts:
+        raise IngestError("No text found for the given outline")
+
+    all_vectors = embed_texts(all_texts)   # one batched embedding call for the whole file
+
+    # --- Fast DB writes inside one transaction ---
+    total_chunks = 0
+    material_ids = []
+    v = 0
+    with transaction.atomic():
+        for unit_name, lesson_name, chunks in prepared:
+            unit, _ = Unit.objects.get_or_create(course=course, name=unit_name)
+            lesson, _ = Lesson.objects.get_or_create(unit=unit, name=lesson_name)
+
+            material, created = Material.objects.get_or_create(
+                lesson=lesson, file_name=file_name,
+                defaults={"file_path": file_path, "file_type": file_type, "material_type": material_type},
+            )
+            if not created:
+                material.file_path = file_path
+                material.file_type = file_type
+                material.material_type = material_type
+                material.save()
+                material.embeddings.all().delete()
+
+            rows = []
+            for chunk in chunks:
+                rows.append(Embedding(
+                    material=material, course=course,
+                    chunk_text=chunk.text, chunk_index=chunk.chunk_index,
+                    page_number=chunk.page_number,
+                    unit_name=unit.name, lesson_name=lesson.name,
+                    embedding=all_vectors[v],
+                ))
+                v += 1
+            Embedding.objects.bulk_create(rows)
+            total_chunks += len(rows)
+            material_ids.append(str(material.id))
+
+    elapsed_ms = int((time.monotonic() - started) * 1000)
+    return {
+        "status": "success",
+        "materials_created": len(material_ids),
+        "material_ids": material_ids,
+        "chunks_created": total_chunks,
+        "pages_processed": len(pages),
+        "processing_time_ms": elapsed_ms,
+    }

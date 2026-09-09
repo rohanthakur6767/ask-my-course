@@ -124,6 +124,9 @@ class ChatSession(models.Model):
         # Who asked, as sent by the LMS. Optional for now while we build and test.
         user_id = models.CharField(max_length=255, blank=True)
 
+        # Groups turns into one chat thread, so follow-up questions have context.
+        conversation_id = models.UUIDField(null=True, blank=True, db_index=True)
+
         question = models.TextField()
         answer = models.TextField()
 

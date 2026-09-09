@@ -1,4 +1,8 @@
-"""Turn retrieved chunks into a grounded answer using OpenAI."""
+"""Turn retrieved chunks into a grounded answer using Google Gemini.
+
+We call Gemini through its OpenAI-compatible API, so the same `openai` client
+works, just pointed at Gemini with a Gemini model name.
+"""
 
 from django.conf import settings
 from openai import OpenAI
@@ -6,7 +10,7 @@ from openai import OpenAI
 from courses.services.retriever import RetrievedChunk
 
 
-ANSWER_MODEL = "gpt-4o-mini"
+ANSWER_MODEL = "gemini-3.1-flash-lite"
 
 # The rulebook we give the model: answer ONLY from the excerpts, never invent.
 SYSTEM_PROMPT = (
@@ -30,25 +34,31 @@ def _build_context(chunks: list[RetrievedChunk]) -> str:
     return "\n\n".join(parts)
 
 
-def generate_answer(question: str, chunks: list[RetrievedChunk]) -> str:
-    """Write an answer to the question, grounded in the given chunks."""
-    api_key = settings.OPENAI_API_KEY
-    if not api_key:
-        raise GenerationError("OPENAI_API_KEY is not set")
+def generate_answer(question: str, chunks: list[RetrievedChunk], history=None) -> str:
+    """Write an answer to the question, grounded in the given chunks.
+
+    `history` is an optional list of prior turns [{"question", "answer"}, ...],
+    so the model understands follow-ups like "explain that more simply".
+    """
+    if not settings.GEMINI_API_KEY:
+        raise GenerationError("GEMINI_API_KEY is not set")
 
     user_prompt = f"Course excerpts:\n{_build_context(chunks)}\n\nQuestion: {question}"
 
-    client = OpenAI(api_key=api_key)
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    for turn in (history or []):
+        messages.append({"role": "user", "content": turn["question"]})
+        messages.append({"role": "assistant", "content": turn["answer"]})
+    messages.append({"role": "user", "content": user_prompt})
+
+    client = OpenAI(api_key=settings.GEMINI_API_KEY, base_url=settings.GEMINI_BASE_URL)
     try:
         response = client.chat.completions.create(
             model=ANSWER_MODEL,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt},
-            ],
+            messages=messages,
             temperature=0.2,   # low = stay factual, less creative
         )
     except Exception as error:
-        raise GenerationError(f"OpenAI answer request failed: {error}")
+        raise GenerationError(f"Gemini answer request failed: {error}")
 
     return response.choices[0].message.content.strip()

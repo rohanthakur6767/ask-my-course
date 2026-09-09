@@ -44,6 +44,9 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  deleteCourse: (courseId) =>
+    request(`/courses/${courseId}`, { method: "DELETE" }),
+
   getStructure: (courseId) => request(`/courses/${courseId}/structure`),
 
   listMaterials: (courseId) => request(`/courses/${courseId}/materials`),
@@ -51,15 +54,29 @@ export const api = {
   getHistory: (courseId, limit = 20) =>
     request(`/courses/${courseId}/history?limit=${limit}`),
 
-  ask: (courseId, question, topK = 5) =>
+  getSuggestions: (courseId) => request(`/courses/${courseId}/suggestions`),
+
+  ask: (courseId, question, topK = 5, conversationId = null) =>
     request(`/courses/${courseId}/ask`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, top_k: topK }),
+      body: JSON.stringify({ question, top_k: topK, conversation_id: conversationId }),
     }),
 
   // formData carries the file plus unit_name, lesson_name, material_type.
   // We do NOT set Content-Type; the browser adds the multipart boundary.
   ingest: (courseId, formData) =>
     request(`/courses/${courseId}/ingest`, { method: "POST", body: formData }),
+
+  // Step 1 of auto-structure: upload a PDF, get back a proposed outline.
+  analyze: (courseId, formData) =>
+    request(`/courses/${courseId}/analyze`, { method: "POST", body: formData }),
+
+  // Step 2 of auto-structure: confirm the (edited) outline and ingest.
+  ingestStructured: (courseId, payload) =>
+    request(`/courses/${courseId}/ingest`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
 };
