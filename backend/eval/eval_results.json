@@ -1,7 +1,7 @@
 {
   "summary": {
-    "generated_at": "2026-09-09T21:53:10",
-    "course_id": "329b18e8-ddb7-4e11-869f-5ff7c989a7cc",
+    "generated_at": "2026-09-09T22:56:54",
+    "course_id": "d595b5f5-4ffc-4c71-84e9-2a9ada2b9bc8",
     "top_k": 5,
     "pass_ratio": 0.5,
     "counts": {
@@ -21,31 +21,31 @@
     },
     "guardrail": {
       "answerable_answered": "20/20",
-      "out_of_scope_refused_hard_flag": "7/8",
+      "out_of_scope_refused_hard_flag": "8/8",
       "out_of_scope_refused_effective": "8/8",
       "no_hallucination_pct": "100.0%",
       "overall": {
-        "correct": 27,
+        "correct": 28,
         "total": 28,
-        "pct": "96.4%"
+        "pct": "100.0%"
       },
-      "smalltalk_handled": "1/2"
+      "smalltalk_handled": "2/2"
     },
     "ingest": {
       "status": "success",
       "materials_created": 7,
       "material_ids": [
-        "f807854e-e9d2-4532-b4aa-d0599f8092cf",
-        "ee67068e-71ec-4c4b-8c5c-0d77545521b9",
-        "50f8bcec-429d-4b98-b3e2-08b065ce0245",
-        "93c9188b-53e3-4aa9-a316-b2e2a5d1e342",
-        "082d544f-59f2-4ace-a187-0ef81b11dbcd",
-        "e134d9c7-0d9b-490d-8cd7-9c71b5f5fec7",
-        "af5ee0c1-fde6-4e72-999b-0b2ec01181f6"
+        "53fdc843-0cac-45dd-bb47-f2ae877862df",
+        "e10a4d07-fc3f-432b-8640-53e65a9bf9ff",
+        "5f3231d6-e399-4bf3-8895-105782051f35",
+        "7da91713-415a-4971-a31c-b0d433eba8bc",
+        "bda37a3e-b191-47cf-a690-2f7d0f0e9b32",
+        "17dbe6bd-ee45-4bdb-9ba8-576bf7887927",
+        "bb56de8c-a23c-464e-8687-8941fc743015"
       ],
       "chunks_created": 23,
       "pages_processed": 19,
-      "processing_time_ms": 4392
+      "processing_time_ms": 4767
     }
   },
   "questions": [
@@ -67,10 +67,10 @@
       "confidence": 0.728,
       "refused": false,
       "effective_refused": false,
-      "correctness_ratio": 1.0,
+      "correctness_ratio": 0.8,
       "correct": true,
       "guardrail_ok": true,
-      "answer": "Environmental science is considered an interdisciplinary field because it is not a single subject but a meeting point of many. It requires the integration of various disciplines—such as chemistry, biology, geology, economics, and sociology—to address environmental questions, as real-world problems rarely fit inside a single subject. Consequently, environmental scientists are trained to think in connections rather than in isolated facts."
+      "answer": "Environmental science is considered an interdisciplinary field because it is not a single subject, but rather a meeting point of many. It involves the study of interactions between the physical, chemical, and biological components of the environment, and real environmental problems rarely fit inside a single subject.\n\nFor example, addressing a question such as why a river is no longer safe to drink from may require:\n*   **Chemistry** to identify the pollutant.\n*   **Biology** to understand its effect on fish.\n*   **Geology** to trace how it moves through groundwater.\n*   **Economics and sociology** to explain why it was released in the first place."
     },
     {
       "id": "u1-q2",
@@ -117,7 +117,7 @@
       "correctness_ratio": 0.8,
       "correct": true,
       "guardrail_ok": true,
-      "answer": "According to the course materials, the difference between the two feedback loops is as follows:\n\n*   **Negative feedback loop:** Dampens change and stabilizes a system.\n*   **Positive feedback loop:** Amplifies change and accelerates it. \n\nAn example of a positive feedback loop is the melting of Arctic ice: as the ice melts, the darker water absorbs more sunlight, which warms the region further and causes more ice to melt."
+      "answer": "According to the course materials, the difference between the two feedback loops is as follows:\n\n*   **Negative feedback loop:** This dampens change and stabilizes a system.\n*   **Positive feedback loop:** This amplifies change and accelerates it. \n\nAn example of a positive feedback loop is the melting of Arctic ice: as the ice melts, the darker water underneath absorbs more sunlight, which warms the region further and causes even more ice to melt."
     },
     {
       "id": "u1-q4",
@@ -210,7 +210,7 @@
       "correctness_ratio": 1.0,
       "correct": true,
       "guardrail_ok": true,
-      "answer": "The acronym HIPPO stands for:\n\n*   **H**abitat destruction\n*   **I**nvasive species\n*   **P**ollution\n*   **P**opulation growth\n*   **O**verharvesting"
+      "answer": "In the context of threats to biodiversity, the acronym HIPPO stands for:\n\n*   **H**abitat destruction\n*   **I**nvasive species\n*   **P**ollution\n*   **P**opulation growth\n*   **O**verharvesting"
     },
     {
       "id": "u2-q4",
@@ -302,7 +302,7 @@
       "correctness_ratio": 0.75,
       "correct": true,
       "guardrail_ok": true,
-      "answer": "The tragedy of the commons describes how a shared resource—owned by no one and used by many—can be destroyed even when everyone understands the danger. Because each user gains the full benefit of taking a little more while the cost is shared by all, individuals continue to take until the resource collapses."
+      "answer": "The tragedy of the commons describes how a shared resource—owned by no one and used by many—can be destroyed even when everyone understands the danger. Because each user gains the full benefit of taking a little more while the cost is shared by all, individuals keep taking until the resource collapses."
     },
     {
       "id": "u3-q4",
@@ -322,10 +322,10 @@
       "confidence": 0.631,
       "refused": false,
       "effective_refused": false,
-      "correctness_ratio": 1.0,
+      "correctness_ratio": 0.6666666666666666,
       "correct": true,
       "guardrail_ok": true,
-      "answer": "According to the course materials, two disadvantages of solar power are that it is intermittent (it produces nothing at night and less on cloudy days) and it requires land and storage."
+      "answer": "According to the course materials, two disadvantages of solar power are that it is intermittent and requires storage and land [2]."
     },
     {
       "id": "u4-q1",
@@ -349,7 +349,7 @@
       "correctness_ratio": 0.8,
       "correct": true,
       "guardrail_ok": true,
-      "answer": "Eutrophication is the nutrient enrichment of water that causes algal blooms and oxygen loss. It is caused when nutrients (such as phosphorus) reach a lake or coastal area, leading to explosive algae growth; as the algae die and decay, they consume the oxygen that fish and other aquatic life need."
+      "answer": "Eutrophication is the nutrient enrichment of water that causes algal blooms and oxygen loss. It is caused when nutrients (such as phosphorus) reach a lake or coastal area, leading to explosive algae growth; as the algae die and decay, they consume the oxygen necessary for fish and other aquatic life."
     },
     {
       "id": "u4-q2",
@@ -372,7 +372,7 @@
       "correctness_ratio": 0.5,
       "correct": true,
       "guardrail_ok": true,
-      "answer": "Based on the provided course materials, the difference is as follows:\n\n*   **Bioaccumulation** refers to a substance building up within a single organism.\n*   **Biomagnification** refers to the substance becoming more concentrated at each step up the food chain."
+      "answer": "According to the course materials, the difference is as follows:\n\n*   **Bioaccumulation** is the process of a substance building up within a single organism.\n*   **Biomagnification** is the process where a substance becomes more concentrated at each step up the food chain."
     },
     {
       "id": "u4-q3",
@@ -487,7 +487,7 @@
       "correctness_ratio": 0.8,
       "correct": true,
       "guardrail_ok": true,
-      "answer": "The difference between mitigation and adaptation is as follows:\n\n*   **Mitigation** refers to actions that reduce the causes of climate change, specifically by cutting greenhouse gas emissions. Examples include shifting to renewable energy, improving efficiency, and protecting forests that absorb carbon.\n*   **Adaptation** refers to actions that prepare for climate impacts that can no longer be avoided. Examples include building flood defenses, developing drought-resistant crops, and designing cities to cope with heat."
+      "answer": "The difference between mitigation and adaptation is as follows:\n\n*   **Mitigation** refers to actions that reduce the causes of climate change, specifically by cutting greenhouse gas emissions. Examples include shifting to renewable energy, improving efficiency, and protecting forests that absorb carbon.\n*   **Adaptation** refers to actions that prepare for climate impacts that can no longer be avoided. Examples include building flood defenses, developing drought-resistant crops, and designing cities to cope with heat.\n\nThese two approaches are complementary rather than alternatives, and both are needed."
     },
     {
       "id": "u5-q4",
@@ -592,21 +592,15 @@
       "category": "out_of_scope",
       "question": "Explain step by step how a nuclear reactor physically generates electricity.",
       "expected_pages": [],
-      "retrieved_pages": [
-        10,
-        4,
-        11,
-        4,
-        9
-      ],
+      "retrieved_pages": [],
       "retrieval_hit": null,
       "confidence": 0.525,
-      "refused": false,
+      "refused": true,
       "effective_refused": true,
       "correctness_ratio": null,
       "correct": null,
-      "guardrail_ok": false,
-      "answer": "I cannot find the answer to your question in the provided course materials. The excerpts mention that nuclear power produces large amounts of electricity and note concerns regarding radioactive waste and safety, but they do not explain the physical process of how a nuclear reactor generates electricity."
+      "guardrail_ok": true,
+      "answer": "I can only answer from this course's materials, and I could not find the answer there. Please rephrase, or ask your teacher to add it."
     },
     {
       "id": "oos-7",
@@ -660,13 +654,13 @@
       "expected_pages": [],
       "retrieved_pages": [],
       "retrieval_hit": null,
-      "confidence": 0.465,
-      "refused": true,
-      "effective_refused": true,
+      "confidence": 0.0,
+      "refused": false,
+      "effective_refused": false,
       "correctness_ratio": null,
       "correct": null,
-      "guardrail_ok": false,
-      "answer": "I can only answer from this course's materials, and I could not find the answer there. Please rephrase, or ask your teacher to add it."
+      "guardrail_ok": true,
+      "answer": "Hi! I'm the assistant for this course. Ask me anything about the course materials and I'll answer with sources. What would you like to know?"
     }
   ]
 }

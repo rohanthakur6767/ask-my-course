@@ -24,10 +24,24 @@ _GREETING_RE = re.compile(
     r"(hi+|hey+|hello+|yo|hiya|hola|namaste)([\s,!.]*(there|everyone|all))?"
     r"|(hi|hey|hello)?\s*how are you( doing)?"
     r"|good\s+(morning|afternoon|evening)"
-    r"|thank you|thanks|thankyou|ty|thx"
+    r"|thank\s*you|thanks|thankyou|thank\s*u|ty|thx|cheers|much appreciated|appreciate it"
     r"|bye|goodbye|see you"
     r"|who are you|what can you do|what do you do|what is this|help"
-    r")[\s,!.?]*$"
+    # Optional polite trailing words, so "thank you so much" / "thanks a lot" /
+    # "good morning sir" still count. Fully anchored, so a real question (which
+    # carries content beyond these fillers) can never match.
+    r")(\s+(so much|very much|a lot|again|please|buddy|mate|sir|ma'?am|guys|team|everyone|all|there|friend))*"
+    r"[\s,!.?]*$"
+)
+
+# Phrases the model uses when it declines because the answer is not in the
+# excerpts. Kept tight (meta-refusal wording, not ordinary content) so a normal
+# grounded answer is never mistaken for a refusal.
+_REFUSAL_HINTS = (
+    "i cannot find", "i could not find", "cannot find the answer",
+    "could not find the answer", "i can only answer", "the excerpts do not",
+    "the materials do not", "no information about", "i cannot answer",
+    "cannot answer this",
 )
 
 
@@ -39,6 +53,12 @@ class AskError(Exception):
 def _is_smalltalk(question: str) -> bool:
     """True for greetings / small talk (hi, hello, how are you, thanks...)."""
     return bool(_GREETING_RE.match(question.lower()))
+
+
+def _looks_like_refusal(answer: str) -> bool:
+    """True when the model's answer is itself a 'not in the materials' refusal."""
+    low = answer.lower()
+    return any(hint in low for hint in _REFUSAL_HINTS)
 
 
 def answer_question(course_id: str, question: str, user_id: str = "", top_k: int = 5,
@@ -90,15 +110,24 @@ def answer_question(course_id: str, question: str, user_id: str = "", top_k: int
         sources = []
     else:
         answer = generate_answer(question, chunks, history=history)
-        sources = [
-            {
-                "unit": c.unit_name,
-                "lesson": c.lesson_name,
-                "page": c.page_number,
-                "relevance_score": round(c.score, 3),
-            }
-            for c in chunks
-        ]
+        # Second guardrail layer: the model may (correctly) decline when the
+        # retrieved chunks do not actually contain the answer, even though the top
+        # score cleared the threshold. Treat that as a refusal so the UI shows the
+        # refusal card instead of a weak "answer" with misleading sources.
+        if _looks_like_refusal(answer):
+            guardrail_triggered = True
+            answer = REFUSAL_MESSAGE
+            sources = []
+        else:
+            sources = [
+                {
+                    "unit": c.unit_name,
+                    "lesson": c.lesson_name,
+                    "page": c.page_number,
+                    "relevance_score": round(c.score, 3),
+                }
+                for c in chunks
+            ]
 
     confidence = round(top_score, 3)
 

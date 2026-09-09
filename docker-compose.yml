@@ -23,15 +23,17 @@ services:
     build: ./backend
     # Apply migrations (which also enables the pgvector extension), then serve.
     command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    # GEMINI_API_KEY (and any other secrets) come from backend/.env. The DB_*
+    # values below are set explicitly so they override .env and the app talks to
+    # the "db" service instead of localhost.
+    env_file:
+      - ./backend/.env
     environment:
       DB_NAME: ${DB_NAME:-ask_my_course}
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
-      DB_HOST: db          # the database service name above
+      DB_HOST: db          # talk to the database service above, not localhost
       DB_PORT: 5432
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      USE_FAKE_EMBEDDINGS: ${USE_FAKE_EMBEDDINGS:-true}
-      USE_FAKE_LLM: ${USE_FAKE_LLM:-true}
     depends_on:
       db:
         condition: service_healthy   # wait until Postgres is ready
