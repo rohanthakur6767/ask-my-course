@@ -1,0 +1,183 @@
+{
+  "course_pdf": "environmental-science-course.pdf",
+  "description": "Evaluation set for Ask My Course, grounded in the 'Fundamentals of Environmental Science' demo course. Used by run_eval.py to measure Retrieval@k, answer correctness, and guardrail accuracy.",
+  "scoring": {
+    "retrieval_hit": "For an 'answerable' question, retrieval is a HIT if any of the top-k returned chunks comes from one of expected_pages.",
+    "answer_correct": "Rough automatic proxy: the fraction of answer_key terms that appear in the answer text. A question passes if it meets the pass_ratio in run_eval.py.",
+    "guardrail_correct": "answerable -> should NOT be refused; out_of_scope -> SHOULD be refused; smalltalk -> should get the friendly reply, not a refusal."
+  },
+  "questions": [
+    {
+      "id": "u1-q1", "category": "answerable", "unit": "Unit 1 - Introduction",
+      "question": "Why is environmental science considered an interdisciplinary field?",
+      "expected_pages": [3],
+      "answer_key": ["interdisciplinary", "chemistry", "biology", "geology", "connections"]
+    },
+    {
+      "id": "u1-q2", "category": "answerable", "unit": "Unit 1 - Introduction",
+      "question": "What are the four spheres of the environment?",
+      "expected_pages": [3, 4],
+      "answer_key": ["atmosphere", "hydrosphere", "lithosphere", "biosphere"]
+    },
+    {
+      "id": "u1-q3", "category": "answerable", "unit": "Unit 1 - Introduction",
+      "question": "What is the difference between a positive and a negative feedback loop?",
+      "expected_pages": [4],
+      "answer_key": ["negative", "dampens", "stabilises", "positive", "amplifies"]
+    },
+    {
+      "id": "u1-q4", "category": "answerable", "unit": "Unit 1 - Introduction",
+      "question": "What happened to the ozone layer and how did the world respond?",
+      "expected_pages": [4],
+      "answer_key": ["cfcs", "hole", "antarctica", "montreal protocol", "healing"]
+    },
+    {
+      "id": "u2-q1", "category": "answerable", "unit": "Unit 2 - Ecosystems and Biodiversity",
+      "question": "What is the ten percent rule in energy flow?",
+      "expected_pages": [6],
+      "answer_key": ["ten percent", "trophic", "energy", "heat"]
+    },
+    {
+      "id": "u2-q2", "category": "answerable", "unit": "Unit 2 - Ecosystems and Biodiversity",
+      "question": "What are the three levels of biodiversity?",
+      "expected_pages": [6, 7],
+      "answer_key": ["genetic", "species", "ecosystem"]
+    },
+    {
+      "id": "u2-q3", "category": "answerable", "unit": "Unit 2 - Ecosystems and Biodiversity",
+      "question": "What does the acronym HIPPO stand for in threats to biodiversity?",
+      "expected_pages": [7],
+      "answer_key": ["habitat", "invasive", "pollution", "population", "overharvesting"]
+    },
+    {
+      "id": "u2-q4", "category": "answerable", "unit": "Unit 2 - Ecosystems and Biodiversity",
+      "question": "What is the difference between primary and secondary ecological succession?",
+      "expected_pages": [7],
+      "answer_key": ["primary", "bare", "soil", "secondary", "disturbance"]
+    },
+    {
+      "id": "u3-q1", "category": "answerable", "unit": "Unit 3 - Natural Resources",
+      "question": "What is sustainable yield and why does it matter for a fishery?",
+      "expected_pages": [9],
+      "answer_key": ["sustainable yield", "harvest", "renew", "collapse"]
+    },
+    {
+      "id": "u3-q2", "category": "answerable", "unit": "Unit 3 - Natural Resources",
+      "question": "What is the difference between renewable and non-renewable resources?",
+      "expected_pages": [9],
+      "answer_key": ["renewable", "replenished", "non-renewable", "fixed", "coal"]
+    },
+    {
+      "id": "u3-q3", "category": "answerable", "unit": "Unit 3 - Natural Resources",
+      "question": "What is the tragedy of the commons?",
+      "expected_pages": [10],
+      "answer_key": ["shared", "commons", "collapse", "overfished"]
+    },
+    {
+      "id": "u3-q4", "category": "answerable", "unit": "Unit 3 - Natural Resources",
+      "question": "What are two disadvantages of solar power?",
+      "expected_pages": [10],
+      "answer_key": ["intermittent", "storage", "night"]
+    },
+    {
+      "id": "u4-q1", "category": "answerable", "unit": "Unit 4 - Pollution and Waste",
+      "question": "What is eutrophication and what causes it?",
+      "expected_pages": [12, 13],
+      "answer_key": ["nutrients", "nitrogen", "phosphorus", "algae", "oxygen"]
+    },
+    {
+      "id": "u4-q2", "category": "answerable", "unit": "Unit 4 - Pollution and Waste",
+      "question": "What is the difference between bioaccumulation and biomagnification?",
+      "expected_pages": [13],
+      "answer_key": ["bioaccumulate", "organism", "biomagnify", "food chain"]
+    },
+    {
+      "id": "u4-q3", "category": "answerable", "unit": "Unit 4 - Pollution and Waste",
+      "question": "What are the three Rs of waste management and why does the order matter?",
+      "expected_pages": [13],
+      "answer_key": ["reduce", "reuse", "recycle", "prevent"]
+    },
+    {
+      "id": "u4-q4", "category": "answerable", "unit": "Unit 4 - Pollution and Waste",
+      "question": "What is the difference between primary and secondary air pollutants?",
+      "expected_pages": [12],
+      "answer_key": ["primary", "directly", "secondary", "reactions", "ozone"]
+    },
+    {
+      "id": "u5-q1", "category": "answerable", "unit": "Unit 5 - Climate and Sustainability",
+      "question": "What is the greenhouse effect?",
+      "expected_pages": [15],
+      "answer_key": ["gases", "trap", "heat", "warm"]
+    },
+    {
+      "id": "u5-q2", "category": "answerable", "unit": "Unit 5 - Climate and Sustainability",
+      "question": "Name three greenhouse gases and their main human sources.",
+      "expected_pages": [15],
+      "answer_key": ["carbon dioxide", "methane", "nitrous oxide", "fossil fuels"]
+    },
+    {
+      "id": "u5-q3", "category": "answerable", "unit": "Unit 5 - Climate and Sustainability",
+      "question": "What is the difference between mitigation and adaptation?",
+      "expected_pages": [16],
+      "answer_key": ["mitigation", "reducing", "emissions", "adaptation", "prepare"]
+    },
+    {
+      "id": "u5-q4", "category": "answerable", "unit": "Unit 5 - Climate and Sustainability",
+      "question": "What are the three pillars of sustainable development?",
+      "expected_pages": [16],
+      "answer_key": ["environmental", "economic", "social", "equity"]
+    },
+
+    {
+      "id": "oos-1", "category": "out_of_scope", "unit": "unrelated",
+      "question": "What is the capital of France?",
+      "expected_pages": [], "answer_key": []
+    },
+    {
+      "id": "oos-2", "category": "out_of_scope", "unit": "unrelated",
+      "question": "Write a Python function that reverses a string.",
+      "expected_pages": [], "answer_key": []
+    },
+    {
+      "id": "oos-3", "category": "out_of_scope", "unit": "unrelated",
+      "question": "Who won the FIFA World Cup in 2018?",
+      "expected_pages": [], "answer_key": []
+    },
+    {
+      "id": "oos-4", "category": "out_of_scope", "unit": "unrelated",
+      "question": "How do I bake a chocolate cake?",
+      "expected_pages": [], "answer_key": []
+    },
+    {
+      "id": "oos-5", "category": "out_of_scope", "unit": "topical-trap (mercury is named, but not this fact)",
+      "question": "What is the boiling point of mercury in degrees Celsius?",
+      "expected_pages": [], "answer_key": []
+    },
+    {
+      "id": "oos-6", "category": "out_of_scope", "unit": "topical-trap (nuclear power is mentioned, but not the mechanism)",
+      "question": "Explain step by step how a nuclear reactor physically generates electricity.",
+      "expected_pages": [], "answer_key": []
+    },
+    {
+      "id": "oos-7", "category": "out_of_scope", "unit": "topical-trap (oil is named as a resource, but not its price)",
+      "question": "What is the current market price of crude oil per barrel?",
+      "expected_pages": [], "answer_key": []
+    },
+    {
+      "id": "oos-8", "category": "out_of_scope", "unit": "topical-trap (population growth is a threat, but not this figure)",
+      "question": "What is the exact current population of India?",
+      "expected_pages": [], "answer_key": []
+    },
+
+    {
+      "id": "st-1", "category": "smalltalk", "unit": "greeting",
+      "question": "hi there",
+      "expected_pages": [], "answer_key": []
+    },
+    {
+      "id": "st-2", "category": "smalltalk", "unit": "greeting",
+      "question": "thank you so much",
+      "expected_pages": [], "answer_key": []
+    }
+  ]
+}

@@ -1,0 +1,672 @@
+{
+  "summary": {
+    "generated_at": "2026-09-09T21:53:10",
+    "course_id": "329b18e8-ddb7-4e11-869f-5ff7c989a7cc",
+    "top_k": 5,
+    "pass_ratio": 0.5,
+    "counts": {
+      "answerable": 20,
+      "out_of_scope": 8,
+      "smalltalk": 2
+    },
+    "retrieval_at_k": {
+      "hits": 20,
+      "total": 20,
+      "pct": "100.0%"
+    },
+    "answer_correctness": {
+      "passed": 20,
+      "total": 20,
+      "pct": "100.0%"
+    },
+    "guardrail": {
+      "answerable_answered": "20/20",
+      "out_of_scope_refused_hard_flag": "7/8",
+      "out_of_scope_refused_effective": "8/8",
+      "no_hallucination_pct": "100.0%",
+      "overall": {
+        "correct": 27,
+        "total": 28,
+        "pct": "96.4%"
+      },
+      "smalltalk_handled": "1/2"
+    },
+    "ingest": {
+      "status": "success",
+      "materials_created": 7,
+      "material_ids": [
+        "f807854e-e9d2-4532-b4aa-d0599f8092cf",
+        "ee67068e-71ec-4c4b-8c5c-0d77545521b9",
+        "50f8bcec-429d-4b98-b3e2-08b065ce0245",
+        "93c9188b-53e3-4aa9-a316-b2e2a5d1e342",
+        "082d544f-59f2-4ace-a187-0ef81b11dbcd",
+        "e134d9c7-0d9b-490d-8cd7-9c71b5f5fec7",
+        "af5ee0c1-fde6-4e72-999b-0b2ec01181f6"
+      ],
+      "chunks_created": 23,
+      "pages_processed": 19,
+      "processing_time_ms": 4392
+    }
+  },
+  "questions": [
+    {
+      "id": "u1-q1",
+      "category": "answerable",
+      "question": "Why is environmental science considered an interdisciplinary field?",
+      "expected_pages": [
+        3
+      ],
+      "retrieved_pages": [
+        3,
+        5,
+        19,
+        2,
+        1
+      ],
+      "retrieval_hit": true,
+      "confidence": 0.728,
+      "refused": false,
+      "effective_refused": false,
+      "correctness_ratio": 1.0,
+      "correct": true,
+      "guardrail_ok": true,
+      "answer": "Environmental science is considered an interdisciplinary field because it is not a single subject but a meeting point of many. It requires the integration of various disciplines—such as chemistry, biology, geology, economics, and sociology—to address environmental questions, as real-world problems rarely fit inside a single subject. Consequently, environmental scientists are trained to think in connections rather than in isolated facts."
+    },
+    {
+      "id": "u1-q2",
+      "category": "answerable",
+      "question": "What are the four spheres of the environment?",
+      "expected_pages": [
+        3,
+        4
+      ],
+      "retrieved_pages": [
+        4,
+        3,
+        5,
+        19,
+        2
+      ],
+      "retrieval_hit": true,
+      "confidence": 0.692,
+      "refused": false,
+      "effective_refused": false,
+      "correctness_ratio": 1.0,
+      "correct": true,
+      "guardrail_ok": true,
+      "answer": "The four spheres of the environment are:\n\n*   **Atmosphere:** The layer of gases surrounding Earth (mainly nitrogen and oxygen).\n*   **Hydrosphere:** All water, including oceans, rivers, lakes, groundwater, and ice.\n*   **Lithosphere:** The solid outer part of Earth, consisting of rock, minerals, and soil.\n*   **Biosphere:** All living organisms and the zones where they live."
+    },
+    {
+      "id": "u1-q3",
+      "category": "answerable",
+      "question": "What is the difference between a positive and a negative feedback loop?",
+      "expected_pages": [
+        4
+      ],
+      "retrieved_pages": [
+        4,
+        4,
+        5,
+        19,
+        14
+      ],
+      "retrieval_hit": true,
+      "confidence": 0.615,
+      "refused": false,
+      "effective_refused": false,
+      "correctness_ratio": 0.8,
+      "correct": true,
+      "guardrail_ok": true,
+      "answer": "According to the course materials, the difference between the two feedback loops is as follows:\n\n*   **Negative feedback loop:** Dampens change and stabilizes a system.\n*   **Positive feedback loop:** Amplifies change and accelerates it. \n\nAn example of a positive feedback loop is the melting of Arctic ice: as the ice melts, the darker water absorbs more sunlight, which warms the region further and causes more ice to melt."
+    },
+    {
+      "id": "u1-q4",
+      "category": "answerable",
+      "question": "What happened to the ozone layer and how did the world respond?",
+      "expected_pages": [
+        4
+      ],
+      "retrieved_pages": [
+        4,
+        16,
+        10,
+        15,
+        17
+      ],
+      "retrieval_hit": true,
+      "confidence": 0.58,
+      "refused": false,
+      "effective_refused": false,
+      "correctness_ratio": 1.0,
+      "correct": true,
+      "guardrail_ok": true,
+      "answer": "In the 1980s, scientists discovered a growing \"hole\" in the ozone layer over Antarctica, which was caused by man-made chemicals called CFCs used in refrigerators and aerosol sprays. In response, the world established the Montreal Protocol, an international agreement to phase out these chemicals. As a result, the ozone layer is now slowly healing."
+    },
+    {
+      "id": "u2-q1",
+      "category": "answerable",
+      "question": "What is the ten percent rule in energy flow?",
+      "expected_pages": [
+        6
+      ],
+      "retrieved_pages": [
+        8,
+        6,
+        19,
+        10,
+        4
+      ],
+      "retrieval_hit": true,
+      "confidence": 0.643,
+      "refused": false,
+      "effective_refused": false,
+      "correctness_ratio": 0.75,
+      "correct": true,
+      "guardrail_ok": true,
+      "answer": "The ten percent rule states that, on average, only about ten percent of the energy at one trophic level in a food chain is available to the next level. This transfer is very inefficient, which explains why food chains rarely have more than four or five levels and why top predators are relatively few."
+    },
+    {
+      "id": "u2-q2",
+      "category": "answerable",
+      "question": "What are the three levels of biodiversity?",
+      "expected_pages": [
+        6,
+        7
+      ],
+      "retrieved_pages": [
+        8,
+        6,
+        6,
+        19,
+        7
+      ],
+      "retrieval_hit": true,
+      "confidence": 0.66,
+      "refused": false,
+      "effective_refused": false,
+      "correctness_ratio": 1.0,
+      "correct": true,
+      "guardrail_ok": true,
+      "answer": "The three levels of biodiversity are:\n\n*   **Genetic diversity:** The variety of genes within a species.\n*   **Species diversity:** The number and relative abundance of different species in an area.\n*   **Ecosystem diversity:** The variety of habitats, communities, and ecological processes across a region."
+    },
+    {
+      "id": "u2-q3",
+      "category": "answerable",
+      "question": "What does the acronym HIPPO stand for in threats to biodiversity?",
+      "expected_pages": [
+        7
+      ],
+      "retrieved_pages": [
+        7,
+        19,
+        6,
+        6,
+        2
+      ],
+      "retrieval_hit": true,
+      "confidence": 0.685,
+      "refused": false,
+      "effective_refused": false,
+      "correctness_ratio": 1.0,
+      "correct": true,
+      "guardrail_ok": true,
+      "answer": "The acronym HIPPO stands for:\n\n*   **H**abitat destruction\n*   **I**nvasive species\n*   **P**ollution\n*   **P**opulation growth\n*   **O**verharvesting"
+    },
+    {
+      "id": "u2-q4",
+      "category": "answerable",
+      "question": "What is the difference between primary and secondary ecological succession?",
+      "expected_pages": [
+        7
+      ],
+      "retrieved_pages": [
+        8,
+        14,
+        7,
+        6,
+        19
+      ],
+      "retrieval_hit": true,
+      "confidence": 0.66,
+      "refused": false,
+      "effective_refused": false,
+      "correctness_ratio": 1.0,
+      "correct": true,
+      "guardrail_ok": true,
+      "answer": "Primary succession begins on bare surfaces that lack soil, such as cooled lava or bare rock, where pioneer species like lichens must build soil over decades. Secondary succession occurs in areas where a disturbance, such as a fire or an abandoned field, has removed the existing community but left the soil intact, allowing for a much faster recovery."
+    },
+    {
+      "id": "u3-q1",
+      "category": "answerable",
+      "question": "What is sustainable yield and why does it matter for a fishery?",
+      "expected_pages": [
+        9
+      ],
+      "retrieved_pages": [
+        11,
+        10,
+        9,
+        19,
+        18
+      ],
+      "retrieval_hit": true,
+      "confidence": 0.634,
+      "refused": false,
+      "effective_refused": false,
+      "correctness_ratio": 1.0,
+      "correct": true,
+      "guardrail_ok": true,
+      "answer": "Sustainable yield is the largest amount of a renewable resource that can be harvested without reducing the resource's ability to renew itself. It is important for a fishery because if the harvest exceeds the sustainable yield, the resource can collapse."
+    },
+    {
+      "id": "u3-q2",
+      "category": "answerable",
+      "question": "What is the difference between renewable and non-renewable resources?",
+      "expected_pages": [
+        9
+      ],
+      "retrieved_pages": [
+        11,
+        9,
+        10,
+        19,
+        2
+      ],
+      "retrieval_hit": true,
+      "confidence": 0.664,
+      "refused": false,
+      "effective_refused": false,
+      "correctness_ratio": 1.0,
+      "correct": true,
+      "guardrail_ok": true,
+      "answer": "Renewable and non-renewable resources are distinguished by how they are replaced:\n\n*   **Renewable resources** are replenished by natural processes on a human timescale. They can last indefinitely if they are not overused. Examples include sunlight, wind, fresh water, hydropower, and sustainably managed forests.\n*   **Non-renewable resources** exist in fixed amounts or form so slowly that they cannot be replaced once they are used. Using them today leaves less for the future. Examples include coal, oil, natural gas, and most minerals."
+    },
+    {
+      "id": "u3-q3",
+      "category": "answerable",
+      "question": "What is the tragedy of the commons?",
+      "expected_pages": [
+        10
+      ],
+      "retrieved_pages": [
+        10,
+        11,
+        10,
+        19,
+        9
+      ],
+      "retrieval_hit": true,
+      "confidence": 0.668,
+      "refused": false,
+      "effective_refused": false,
+      "correctness_ratio": 0.75,
+      "correct": true,
+      "guardrail_ok": true,
+      "answer": "The tragedy of the commons describes how a shared resource—owned by no one and used by many—can be destroyed even when everyone understands the danger. Because each user gains the full benefit of taking a little more while the cost is shared by all, individuals continue to take until the resource collapses."
+    },
+    {
+      "id": "u3-q4",
+      "category": "answerable",
+      "question": "What are two disadvantages of solar power?",
+      "expected_pages": [
+        10
+      ],
+      "retrieved_pages": [
+        11,
+        10,
+        13,
+        16,
+        19
+      ],
+      "retrieval_hit": true,
+      "confidence": 0.631,
+      "refused": false,
+      "effective_refused": false,
+      "correctness_ratio": 1.0,
+      "correct": true,
+      "guardrail_ok": true,
+      "answer": "According to the course materials, two disadvantages of solar power are that it is intermittent (it produces nothing at night and less on cloudy days) and it requires land and storage."
+    },
+    {
+      "id": "u4-q1",
+      "category": "answerable",
+      "question": "What is eutrophication and what causes it?",
+      "expected_pages": [
+        12,
+        13
+      ],
+      "retrieved_pages": [
+        14,
+        19,
+        13,
+        18,
+        7
+      ],
+      "retrieval_hit": true,
+      "confidence": 0.606,
+      "refused": false,
+      "effective_refused": false,
+      "correctness_ratio": 0.8,
+      "correct": true,
+      "guardrail_ok": true,
+      "answer": "Eutrophication is the nutrient enrichment of water that causes algal blooms and oxygen loss. It is caused when nutrients (such as phosphorus) reach a lake or coastal area, leading to explosive algae growth; as the algae die and decay, they consume the oxygen that fish and other aquatic life need."
+    },
+    {
+      "id": "u4-q2",
+      "category": "answerable",
+      "question": "What is the difference between bioaccumulation and biomagnification?",
+      "expected_pages": [
+        13
+      ],
+      "retrieved_pages": [
+        14,
+        18,
+        13,
+        8,
+        19
+      ],
+      "retrieval_hit": true,
+      "confidence": 0.705,
+      "refused": false,
+      "effective_refused": false,
+      "correctness_ratio": 0.5,
+      "correct": true,
+      "guardrail_ok": true,
+      "answer": "Based on the provided course materials, the difference is as follows:\n\n*   **Bioaccumulation** refers to a substance building up within a single organism.\n*   **Biomagnification** refers to the substance becoming more concentrated at each step up the food chain."
+    },
+    {
+      "id": "u4-q3",
+      "category": "answerable",
+      "question": "What are the three Rs of waste management and why does the order matter?",
+      "expected_pages": [
+        13
+      ],
+      "retrieved_pages": [
+        13,
+        14,
+        19,
+        12,
+        8
+      ],
+      "retrieval_hit": true,
+      "confidence": 0.632,
+      "refused": false,
+      "effective_refused": false,
+      "correctness_ratio": 1.0,
+      "correct": true,
+      "guardrail_ok": true,
+      "answer": "The three Rs of waste management are Reduce, Reuse, and Recycle. The order is important because preventing waste (Reduce) is better than dealing with it afterwards."
+    },
+    {
+      "id": "u4-q4",
+      "category": "answerable",
+      "question": "What is the difference between primary and secondary air pollutants?",
+      "expected_pages": [
+        12
+      ],
+      "retrieved_pages": [
+        14,
+        12,
+        8,
+        19,
+        13
+      ],
+      "retrieval_hit": true,
+      "confidence": 0.701,
+      "refused": false,
+      "effective_refused": false,
+      "correctness_ratio": 1.0,
+      "correct": true,
+      "guardrail_ok": true,
+      "answer": "Primary pollutants are released directly into the air, while secondary pollutants form in the air through chemical reactions (such as ground-level ozone)."
+    },
+    {
+      "id": "u5-q1",
+      "category": "answerable",
+      "question": "What is the greenhouse effect?",
+      "expected_pages": [
+        15
+      ],
+      "retrieved_pages": [
+        17,
+        15,
+        19,
+        16,
+        4
+      ],
+      "retrieval_hit": true,
+      "confidence": 0.604,
+      "refused": false,
+      "effective_refused": false,
+      "correctness_ratio": 1.0,
+      "correct": true,
+      "guardrail_ok": true,
+      "answer": "The greenhouse effect is the natural process by which certain gases in the atmosphere trap heat radiated from Earth's surface, keeping the planet warm enough to support life. Without this process, Earth would be frozen."
+    },
+    {
+      "id": "u5-q2",
+      "category": "answerable",
+      "question": "Name three greenhouse gases and their main human sources.",
+      "expected_pages": [
+        15
+      ],
+      "retrieved_pages": [
+        15,
+        17,
+        19,
+        16,
+        4
+      ],
+      "retrieval_hit": true,
+      "confidence": 0.66,
+      "refused": false,
+      "effective_refused": false,
+      "correctness_ratio": 1.0,
+      "correct": true,
+      "guardrail_ok": true,
+      "answer": "Based on the provided course materials, here are three greenhouse gases and their main human sources:\n\n*   **Carbon dioxide (CO2):** Burning fossil fuels and deforestation.\n*   **Methane (CH4):** Livestock, rice paddies, landfills, and gas leaks.\n*   **Nitrous oxide (N2O):** Fertilisers and some industry."
+    },
+    {
+      "id": "u5-q3",
+      "category": "answerable",
+      "question": "What is the difference between mitigation and adaptation?",
+      "expected_pages": [
+        16
+      ],
+      "retrieved_pages": [
+        17,
+        16,
+        18,
+        19,
+        15
+      ],
+      "retrieval_hit": true,
+      "confidence": 0.654,
+      "refused": false,
+      "effective_refused": false,
+      "correctness_ratio": 0.8,
+      "correct": true,
+      "guardrail_ok": true,
+      "answer": "The difference between mitigation and adaptation is as follows:\n\n*   **Mitigation** refers to actions that reduce the causes of climate change, specifically by cutting greenhouse gas emissions. Examples include shifting to renewable energy, improving efficiency, and protecting forests that absorb carbon.\n*   **Adaptation** refers to actions that prepare for climate impacts that can no longer be avoided. Examples include building flood defenses, developing drought-resistant crops, and designing cities to cope with heat."
+    },
+    {
+      "id": "u5-q4",
+      "category": "answerable",
+      "question": "What are the three pillars of sustainable development?",
+      "expected_pages": [
+        16
+      ],
+      "retrieved_pages": [
+        17,
+        19,
+        16,
+        3,
+        15
+      ],
+      "retrieval_hit": true,
+      "confidence": 0.719,
+      "refused": false,
+      "effective_refused": false,
+      "correctness_ratio": 1.0,
+      "correct": true,
+      "guardrail_ok": true,
+      "answer": "The three pillars of sustainable development are environmental protection, economic well-being, and social equity."
+    },
+    {
+      "id": "oos-1",
+      "category": "out_of_scope",
+      "question": "What is the capital of France?",
+      "expected_pages": [],
+      "retrieved_pages": [],
+      "retrieval_hit": null,
+      "confidence": 0.436,
+      "refused": true,
+      "effective_refused": true,
+      "correctness_ratio": null,
+      "correct": null,
+      "guardrail_ok": true,
+      "answer": "I can only answer from this course's materials, and I could not find the answer there. Please rephrase, or ask your teacher to add it."
+    },
+    {
+      "id": "oos-2",
+      "category": "out_of_scope",
+      "question": "Write a Python function that reverses a string.",
+      "expected_pages": [],
+      "retrieved_pages": [],
+      "retrieval_hit": null,
+      "confidence": 0.446,
+      "refused": true,
+      "effective_refused": true,
+      "correctness_ratio": null,
+      "correct": null,
+      "guardrail_ok": true,
+      "answer": "I can only answer from this course's materials, and I could not find the answer there. Please rephrase, or ask your teacher to add it."
+    },
+    {
+      "id": "oos-3",
+      "category": "out_of_scope",
+      "question": "Who won the FIFA World Cup in 2018?",
+      "expected_pages": [],
+      "retrieved_pages": [],
+      "retrieval_hit": null,
+      "confidence": 0.426,
+      "refused": true,
+      "effective_refused": true,
+      "correctness_ratio": null,
+      "correct": null,
+      "guardrail_ok": true,
+      "answer": "I can only answer from this course's materials, and I could not find the answer there. Please rephrase, or ask your teacher to add it."
+    },
+    {
+      "id": "oos-4",
+      "category": "out_of_scope",
+      "question": "How do I bake a chocolate cake?",
+      "expected_pages": [],
+      "retrieved_pages": [],
+      "retrieval_hit": null,
+      "confidence": 0.427,
+      "refused": true,
+      "effective_refused": true,
+      "correctness_ratio": null,
+      "correct": null,
+      "guardrail_ok": true,
+      "answer": "I can only answer from this course's materials, and I could not find the answer there. Please rephrase, or ask your teacher to add it."
+    },
+    {
+      "id": "oos-5",
+      "category": "out_of_scope",
+      "question": "What is the boiling point of mercury in degrees Celsius?",
+      "expected_pages": [],
+      "retrieved_pages": [],
+      "retrieval_hit": null,
+      "confidence": 0.459,
+      "refused": true,
+      "effective_refused": true,
+      "correctness_ratio": null,
+      "correct": null,
+      "guardrail_ok": true,
+      "answer": "I can only answer from this course's materials, and I could not find the answer there. Please rephrase, or ask your teacher to add it."
+    },
+    {
+      "id": "oos-6",
+      "category": "out_of_scope",
+      "question": "Explain step by step how a nuclear reactor physically generates electricity.",
+      "expected_pages": [],
+      "retrieved_pages": [
+        10,
+        4,
+        11,
+        4,
+        9
+      ],
+      "retrieval_hit": null,
+      "confidence": 0.525,
+      "refused": false,
+      "effective_refused": true,
+      "correctness_ratio": null,
+      "correct": null,
+      "guardrail_ok": false,
+      "answer": "I cannot find the answer to your question in the provided course materials. The excerpts mention that nuclear power produces large amounts of electricity and note concerns regarding radioactive waste and safety, but they do not explain the physical process of how a nuclear reactor generates electricity."
+    },
+    {
+      "id": "oos-7",
+      "category": "out_of_scope",
+      "question": "What is the current market price of crude oil per barrel?",
+      "expected_pages": [],
+      "retrieved_pages": [],
+      "retrieval_hit": null,
+      "confidence": 0.47,
+      "refused": true,
+      "effective_refused": true,
+      "correctness_ratio": null,
+      "correct": null,
+      "guardrail_ok": true,
+      "answer": "I can only answer from this course's materials, and I could not find the answer there. Please rephrase, or ask your teacher to add it."
+    },
+    {
+      "id": "oos-8",
+      "category": "out_of_scope",
+      "question": "What is the exact current population of India?",
+      "expected_pages": [],
+      "retrieved_pages": [],
+      "retrieval_hit": null,
+      "confidence": 0.439,
+      "refused": true,
+      "effective_refused": true,
+      "correctness_ratio": null,
+      "correct": null,
+      "guardrail_ok": true,
+      "answer": "I can only answer from this course's materials, and I could not find the answer there. Please rephrase, or ask your teacher to add it."
+    },
+    {
+      "id": "st-1",
+      "category": "smalltalk",
+      "question": "hi there",
+      "expected_pages": [],
+      "retrieved_pages": [],
+      "retrieval_hit": null,
+      "confidence": 0.0,
+      "refused": false,
+      "effective_refused": false,
+      "correctness_ratio": null,
+      "correct": null,
+      "guardrail_ok": true,
+      "answer": "Hi! I'm the assistant for this course. Ask me anything about the course materials and I'll answer with sources. What would you like to know?"
+    },
+    {
+      "id": "st-2",
+      "category": "smalltalk",
+      "question": "thank you so much",
+      "expected_pages": [],
+      "retrieved_pages": [],
+      "retrieval_hit": null,
+      "confidence": 0.465,
+      "refused": true,
+      "effective_refused": true,
+      "correctness_ratio": null,
+      "correct": null,
+      "guardrail_ok": false,
+      "answer": "I can only answer from this course's materials, and I could not find the answer there. Please rephrase, or ask your teacher to add it."
+    }
+  ]
+}

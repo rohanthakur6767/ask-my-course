@@ -46,7 +46,7 @@ def answer_question(course_id: str, question: str, user_id: str = "", top_k: int
     """Answer a student's question, grounded only in the course materials.
 
     If conversation_id is given, the last few turns of that conversation are fed
-    to the model so follow-up questions ("explain that more simply") keep context.
+    to the model so follow-up questions keep context.
     """
     if not Course.objects.filter(id=course_id).exists():
         raise AskError(f"Course not found: {course_id}")
