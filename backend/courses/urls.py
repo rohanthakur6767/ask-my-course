@@ -11,6 +11,7 @@ from courses.views import (
     CourseStructureView,
     MaterialsView,
     HistoryView,
+    InsightsView,
 )
 
 urlpatterns = [
@@ -32,4 +33,5 @@ urlpatterns = [
     path("courses/<uuid:course_id>/structure", CourseStructureView.as_view(), name="structure"),
     path("courses/<uuid:course_id>/materials", MaterialsView.as_view(), name="materials"),
     path("courses/<uuid:course_id>/history", HistoryView.as_view(), name="history"),
+    path("courses/<uuid:course_id>/insights", InsightsView.as_view(), name="insights"),
 ]

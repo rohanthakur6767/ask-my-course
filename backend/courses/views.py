@@ -1,5 +1,6 @@
 import json
 import os
+from collections import Counter
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -23,7 +24,7 @@ from courses.services.ingest import ingest_material, ingest_structured, IngestEr
 from courses.services.pdf_extractor import PdfExtractionError, extract_pages
 from courses.services.outliner import propose_outline, OutlineError
 from courses.services.embedder import EmbeddingError
-from courses.services.ask import answer_question, AskError
+from courses.services.ask import answer_question, AskError, SMALLTALK_MESSAGE
 from courses.services.generator import GenerationError
 from courses.services.suggestions import suggest_questions
 
@@ -278,3 +279,66 @@ class HistoryView(APIView):
         # ChatSession is already ordered newest-first (Meta.ordering).
         sessions = ChatSession.objects.filter(course_id=course_id)[:limit]
         return Response(ChatSessionSerializer(sessions, many=True).data)
+
+
+def _normalize_question(text):
+    """Lowercase, collapse spaces, and drop trailing punctuation, so that
+    'What is eutrophication?' and 'what is eutrophication' count as the same."""
+    return " ".join((text or "").lower().split()).rstrip("?.! ")
+
+
+class InsightsView(APIView):
+    """GET /api/v1/courses/<course_id>/insights
+
+    A teacher view of what students actually ask: totals, the guardrail (gap)
+    rate, the most-asked questions, and - most useful - the 'content gaps':
+    questions the guardrail refused, i.e. things students wanted that are not in
+    the materials yet. Greetings/small talk are excluded.
+    """
+
+    def get(self, request, course_id):
+        if not Course.objects.filter(id=course_id).exists():
+            return Response({"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        sessions = list(ChatSession.objects.filter(course_id=course_id))
+        # Drop greetings/small talk - those are not "doubts".
+        real = [s for s in sessions if s.answer != SMALLTALK_MESSAGE]
+
+        refused = [s for s in real if s.guardrail_triggered]
+        answered = [s for s in real if not s.guardrail_triggered]
+        total = len(real)
+        avg_conf = round(sum(s.confidence for s in answered) / len(answered), 3) if answered else 0.0
+
+        # Most-asked questions (all real questions, grouped by normalized text).
+        asked, asked_label = Counter(), {}
+        for s in real:
+            key = _normalize_question(s.question)
+            if not key:
+                continue
+            asked[key] += 1
+            asked_label.setdefault(key, s.question)   # keep the first-seen wording
+        top_questions = [
+            {"question": asked_label[k], "count": c} for k, c in asked.most_common(10)
+        ]
+
+        # Content gaps: the refused questions, grouped and counted.
+        gap, gap_label = Counter(), {}
+        for s in refused:
+            key = _normalize_question(s.question)
+            if not key:
+                continue
+            gap[key] += 1
+            gap_label.setdefault(key, s.question)
+        gaps = [
+            {"question": gap_label[k], "count": c} for k, c in gap.most_common(10)
+        ]
+
+        return Response({
+            "total_questions": total,
+            "answered_count": len(answered),
+            "refused_count": len(refused),
+            "refused_rate": round(len(refused) / total, 3) if total else 0.0,
+            "avg_confidence": avg_conf,
+            "top_questions": top_questions,
+            "gaps": gaps,
+        })

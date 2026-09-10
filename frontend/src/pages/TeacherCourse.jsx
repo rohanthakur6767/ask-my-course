@@ -57,7 +57,10 @@ export default function TeacherCourse() {
           <h1>{structure.name}</h1>
           <p className="sub">{structure.description || "Upload materials, then check the structure below."}</p>
         </div>
-        <Link className="btn btn-ghost btn-sm" to={`/student/courses/${courseId}`}>Open student view</Link>
+        <div style={{ display: "flex", gap: "var(--s2)" }}>
+          <Link className="btn btn-ghost btn-sm" to={`/teacher/courses/${courseId}/insights`}>Common doubts</Link>
+          <Link className="btn btn-ghost btn-sm" to={`/student/courses/${courseId}`}>Open student view</Link>
+        </div>
       </div>
 
       <div className="two-col">

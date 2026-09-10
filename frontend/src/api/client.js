@@ -56,6 +56,8 @@ export const api = {
 
   getSuggestions: (courseId) => request(`/courses/${courseId}/suggestions`),
 
+  getInsights: (courseId) => request(`/courses/${courseId}/insights`),
+
   ask: (courseId, question, topK = 5, conversationId = null) =>
     request(`/courses/${courseId}/ask`, {
       method: "POST",
