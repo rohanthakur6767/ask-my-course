@@ -16,7 +16,10 @@ pgvector==0.5.0               # adds the vector column type and the HNSW similar
 PyMuPDF==1.28.2               # opens PDFs and pulls out text page by page (imported as 'fitz')
 
 # --- AI ---
-openai==3.7.0                 # embeddings (text-embedding-3-small) + answers (gpt-4o-mini)
+openai==3.7.0                 # OpenAI-compatible client, pointed at Google Gemini
 
 # --- Config / secrets ---
 python-dotenv==1.2.3          # loads DB password and API key from the .env file
+
+# --- Production web server ---
+gunicorn==23.0.0              # serves the app in production (instead of runserver)

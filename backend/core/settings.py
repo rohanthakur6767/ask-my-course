@@ -2,22 +2,30 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 
+load_dotenv()   # read backend/.env before we use os.getenv below
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# SECRET_KEY: from the environment in production; a dev fallback keeps local easy.
+SECRET_KEY = os.getenv(
+    "SECRET_KEY",
+    "django-insecure-#&cwh!^psb)4!xh_(ys4e+1*5^q-=2a$q^g822d*@i&d$0wp39",
+)
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
+# DEBUG: on by default for local dev. SET DEBUG=False in production.
+DEBUG = os.getenv("DEBUG", "True").lower() == "true"
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-#&cwh!^psb)4!xh_(ys4e+1*5^q-=2a$q^g822d*@i&d$0wp39'
+# ALLOWED_HOSTS: comma-separated list from the environment (needed when DEBUG is
+# False). Localhost is always allowed; Render sets RENDER_EXTERNAL_HOSTNAME itself.
+ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "").split(",") if h.strip()]
+ALLOWED_HOSTS += ["localhost", "127.0.0.1"]
+_render_host = os.getenv("RENDER_EXTERNAL_HOSTNAME")
+if _render_host:
+    ALLOWED_HOSTS.append(_render_host)
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
-load_dotenv()
+# Behind a host like Render, HTTPS is terminated at the proxy; trust its header.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Application definition
 
@@ -76,8 +84,14 @@ DATABASES = {
         "PASSWORD": os.getenv("DB_PASSWORD"),
         "HOST": os.getenv("DB_HOST"),
         "PORT": os.getenv("DB_PORT"),
+        "CONN_MAX_AGE": int(os.getenv("DB_CONN_MAX_AGE", "0")),
     }
 }
+# Managed databases (like Supabase) require SSL. Set DB_SSLMODE=require in prod;
+# leave it unset for a local Postgres that has no SSL.
+_sslmode = os.getenv("DB_SSLMODE")
+if _sslmode:
+    DATABASES["default"]["OPTIONS"] = {"sslmode": _sslmode}
 
 
 # Password validation
@@ -115,6 +129,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / "staticfiles"   # where collectstatic gathers files in production
 
 
 # Email
@@ -126,11 +141,15 @@ MAILERS = {
     },
 }
 
-# Let the React dev server call this API during development.
+# Let the React dev server call this API during development. In production, add
+# the deployed frontend origin(s) via CORS_ORIGINS (comma-separated).
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:5174",
 ]
+CORS_ALLOWED_ORIGINS += [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
+# CSRF trust for the deployed frontend (used by the Django admin over HTTPS).
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
 
 # --- AI provider: Google Gemini (free tier) via its OpenAI-compatible API ---
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")

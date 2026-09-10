@@ -16,6 +16,7 @@ COPY . .
 
 EXPOSE 8000
 
-# Dev server is fine for the demo / local compose.
-# For real production, run gunicorn instead (e.g. gunicorn core.wsgi).
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# Production start: run migrations, then serve with gunicorn.
+# Binds to $PORT if the host sets one (Render does); defaults to 8000 otherwise.
+# (Local docker compose overrides this command to use runserver.)
+CMD ["sh", "-c", "python manage.py migrate && gunicorn core.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 3 --timeout 120"]
