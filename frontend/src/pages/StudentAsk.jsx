@@ -220,6 +220,9 @@ function AnswerBubble({ result }) {
   }
 
   const hasSources = sources.length > 0;
+  // Only list sources strong enough to be worth showing. The guardrail already
+  // guarantees the best match is >= 0.5, so at least one source always remains.
+  const shownSources = sources.filter((s) => (s.relevance_score || 0) >= 0.5);
 
   return (
     <div className="turn turn-assistant">
@@ -236,11 +239,11 @@ function AnswerBubble({ result }) {
 
         <div className="answer"><ReactMarkdown>{answer}</ReactMarkdown></div>
 
-        {hasSources && (
+        {shownSources.length > 0 && (
           <div style={{ marginTop: "var(--s4)" }}>
             <div className="card-sub" style={{ marginBottom: "var(--s2)", fontWeight: 600 }}>Sources</div>
             <div className="sources">
-              {sources.map((s, i) => (
+              {shownSources.map((s, i) => (
                 <div key={i} className="source">
                   <div>
                     <span className="path">{s.unit} &rsaquo; {s.lesson}</span>
