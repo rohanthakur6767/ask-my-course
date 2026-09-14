@@ -19,6 +19,7 @@ from courses.models import Course, Unit, Lesson, Material, Embedding
 from courses.services.pdf_extractor import extract_pages
 from courses.services.chunker import chunk_pages, chunk_segments
 from courses.services.extractors import extract_segments, file_type_of
+from courses.services.converter import convert_to_pdf, ConversionError
 from courses.services.embedder import embed_texts
 
 
@@ -89,9 +90,30 @@ def ingest_material(
     file_type = (file_type or file_type_of(file_path) or "pdf").lower()
 
     # --- Heavy work FIRST, outside the database transaction ---
-    # Extract (any of PDF / DOCX / PPTX) into common segments, then chunk them.
-    # Embedding hits the network, so we do it before opening the DB transaction.
-    segments = extract_segments(file_path, file_type)         # may raise ExtractionError
+    # Also build a viewable PDF so citations can open at the exact page/slide:
+    #  - PDF  : the file itself (extract by page)
+    #  - PPTX : keep slide text incl. notes; slide N == PDF page N in the copy
+    #  - DOCX : convert to PDF, then extract THAT by page (real, deep-linkable pages)
+    pdf_path = None
+    if file_type == "pdf":
+        segments = extract_segments(file_path, "pdf")
+        pdf_path = file_path
+    elif file_type == "pptx":
+        segments = extract_segments(file_path, "pptx")
+        try:
+            pdf_path = convert_to_pdf(file_path)
+        except ConversionError:
+            pdf_path = None            # still ingest; just no inline "Open"
+    elif file_type == "docx":
+        try:
+            pdf_path = convert_to_pdf(file_path)
+            segments = extract_segments(pdf_path, "pdf")       # page-based, deep-linkable
+        except ConversionError:
+            segments = extract_segments(file_path, "docx")     # fallback: sections, no deep-link
+            pdf_path = None
+    else:
+        segments = extract_segments(file_path, file_type)      # may raise ExtractionError
+
     chunks = chunk_segments(segments)
 
     if not chunks:
@@ -108,6 +130,7 @@ def ingest_material(
         # Reuse the material if this exact file was ingested before (same lesson
         # + same file name), so a re-upload updates it instead of duplicating.
         source_url = _media_url(file_path)
+        pdf_url = _media_url(pdf_path) if pdf_path else ""
         material, created = Material.objects.get_or_create(
             lesson=lesson,
             file_name=file_name,
@@ -115,6 +138,7 @@ def ingest_material(
                 "file_path": file_path,
                 "file_type": file_type,
                 "source_url": source_url,
+                "pdf_url": pdf_url,
                 "material_type": material_type,
             },
         )
@@ -124,6 +148,7 @@ def ingest_material(
             material.file_path = file_path
             material.file_type = file_type
             material.source_url = source_url
+            material.pdf_url = pdf_url
             material.material_type = material_type
             material.save()
             material.embeddings.all().delete()
@@ -216,15 +241,17 @@ def ingest_structured(
             unit, _ = Unit.objects.get_or_create(course=course, name=unit_name)
             lesson, _ = Lesson.objects.get_or_create(unit=unit, name=lesson_name)
 
+            url = _media_url(file_path)   # a PDF, so it is both the download and the viewable copy
             material, created = Material.objects.get_or_create(
                 lesson=lesson, file_name=file_name,
                 defaults={"file_path": file_path, "file_type": file_type,
-                          "source_url": _media_url(file_path), "material_type": material_type},
+                          "source_url": url, "pdf_url": url, "material_type": material_type},
             )
             if not created:
                 material.file_path = file_path
                 material.file_type = file_type
-                material.source_url = _media_url(file_path)
+                material.source_url = url
+                material.pdf_url = url
                 material.material_type = material_type
                 material.save()
                 material.embeddings.all().delete()

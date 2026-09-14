@@ -83,13 +83,16 @@ def _location_label(c) -> str:
 
 
 def _citation_link(c) -> str:
-    """A link that opens the file at the right place. PDFs deep-link to the page;
-    other types open the file (uniform deep-linking comes with the PDF-render phase)."""
-    if not c.source_url:
+    """A link that opens the viewable PDF at the right page/slide.
+
+    Every type now has a viewable PDF (native for PDFs, a converted copy for
+    DOCX/PPTX), so Open works uniformly. Blank if no PDF was produced.
+    """
+    if not c.pdf_url:
         return ""
-    if c.file_type == "pdf" and c.location_value:
-        return f"{c.source_url}#page={c.location_value}"
-    return c.source_url
+    if c.location_value:
+        return f"{c.pdf_url}#page={c.location_value}"
+    return c.pdf_url
 
 
 def _build_sources(chunks) -> list[dict]:

@@ -51,8 +51,11 @@ class Material(models.Model):
         file_name = models.CharField(max_length=255)
         file_path = models.CharField(max_length=500, blank=True)  # blank for typed notes (no file)
         file_type = models.CharField(max_length=50, blank=True)   # pdf, docx, pptx
-        # A link to open/download the original file (media URL now, cloud storage later).
+        # A link to download the ORIGINAL file (media URL now, cloud storage later).
         source_url = models.CharField(max_length=1000, blank=True)
+        # A link to a viewable PDF for inline "Open at page/slide". Same as
+        # source_url for a PDF; a converted copy for DOCX/PPTX; blank if none.
+        pdf_url = models.CharField(max_length=1000, blank=True)
         material_type = models.CharField(
             max_length=20, choices=MaterialType.choices, default=MaterialType.PDF
             )

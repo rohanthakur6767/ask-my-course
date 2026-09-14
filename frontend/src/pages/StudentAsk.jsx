@@ -273,10 +273,9 @@ function AnswerBubble({ result, animate = false, onGrow }) {
             <div className="card-sub" style={{ marginBottom: "var(--s2)", fontWeight: 600 }}>Sources</div>
             <div className="sources">
               {shownSources.map((s, i) => {
-                // Only PDFs open inside the browser (at the right page). Word and
-                // PowerPoint can't be shown in a browser, so we offer Download only.
-                const isPdf = (s.file_type || "").toLowerCase() === "pdf";
-                const open = isPdf ? fileUrl(s.link || s.source_url) : "";
+                // "Open" points at a viewable PDF at the exact page/slide (native for
+                // PDFs, a converted copy for Word/PowerPoint); "Download" is the original.
+                const open = fileUrl(s.link);
                 const download = fileUrl(s.source_url);
                 return (
                   <div key={i} className="source">

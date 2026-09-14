@@ -21,7 +21,8 @@ class RetrievedChunk:
     # File-centric citation info (works across PDF / DOCX / PPTX):
     file_name: str
     file_type: str
-    source_url: str
+    source_url: str               # original file (download)
+    pdf_url: str                  # viewable PDF (open at page/slide); "" if none
     location_kind: str            # "page" | "slide" | "section"
     location_value: int | None
     location_label: str
@@ -61,6 +62,7 @@ def retrieve(course_id: str, question: str, top_k: int = DEFAULT_TOP_K) -> list[
             file_name=row.file_name or row.material.file_name,
             file_type=row.material.file_type,
             source_url=row.material.source_url,
+            pdf_url=row.material.pdf_url,
             location_kind=row.location_kind or ("page" if row.page_number else ""),
             location_value=row.location_value if row.location_value is not None else row.page_number,
             location_label=row.location_label,
