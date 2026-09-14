@@ -70,6 +70,38 @@ export const api = {
 
   getInsights: (courseId) => request(`/courses/${courseId}/insights`),
 
+  // --- Structure editing (rename / add / move / delete) ---
+  createUnit: (courseId, name) =>
+    request(`/courses/${courseId}/units`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    }),
+  renameUnit: (unitId, name) =>
+    request(`/units/${unitId}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    }),
+  deleteUnit: (unitId) => request(`/units/${unitId}`, { method: "DELETE" }),
+
+  createLesson: (unitId, name) =>
+    request(`/units/${unitId}/lessons`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    }),
+  updateLesson: (lessonId, data) =>
+    request(`/lessons/${lessonId}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }),
+  deleteLesson: (lessonId) => request(`/lessons/${lessonId}`, { method: "DELETE" }),
+
+  updateMaterial: (materialId, data) =>
+    request(`/materials/${materialId}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }),
+  deleteMaterial: (materialId) => request(`/materials/${materialId}`, { method: "DELETE" }),
+
   ask: (courseId, question, topK = 5, conversationId = null) =>
     request(`/courses/${courseId}/ask`, {
       method: "POST",

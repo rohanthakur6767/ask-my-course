@@ -274,6 +274,12 @@ a { color: inherit; text-decoration: none; }
 .answer h1 { font-size: 18px; } .answer h2 { font-size: 16px; } .answer h3 { font-size: 15px; }
 .answer code { background: var(--paper-2); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; font-family: var(--font-mono, monospace); font-size: 13px; }
 .answer a { color: var(--gold-600); text-decoration: underline; }
+.type-cursor {
+  display: inline-block; width: 7px; height: 1.05em; margin-left: 1px; vertical-align: -2px;
+  background: var(--gold); border-radius: 1px; animation: blink 1s steps(1) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .type-cursor { animation: none; opacity: 0.6; } }
 .answer-refused {
   background: var(--warn-soft); border: 1px solid var(--line-strong); border-left: 3px solid var(--warn);
   border-radius: var(--radius-sm); padding: var(--s4); color: var(--warn);
@@ -291,6 +297,22 @@ a { color: inherit; text-decoration: none; }
 .source .src-actions a:hover { text-decoration: underline; }
 .foldl-fail { margin: 8px 0 0; padding-left: 18px; font-size: 12px; color: var(--muted); }
 .foldl-fail li { margin: 2px 0; }
+
+/* Structure editing controls (rename / add / move / delete) */
+.edit-row { display: flex; align-items: center; gap: 8px; }
+.edit-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.edit-actions { display: inline-flex; gap: 2px; flex: none; }
+.edit-actions button, .mini-del {
+  background: none; border: none; cursor: pointer; font-size: 13px; line-height: 1;
+  padding: 3px 6px; border-radius: 6px; color: var(--muted); font-family: inherit;
+}
+.edit-actions button:hover:not(:disabled), .mini-del:hover:not(:disabled) { background: var(--paper-2); color: var(--navy); }
+.mini-del { flex: none; }
+.mini-del:hover:not(:disabled) { color: var(--danger); }
+.move-select {
+  flex: none; font-size: 11px; border: 1px solid var(--line); border-radius: 6px;
+  padding: 2px 4px; background: var(--paper); color: var(--muted); max-width: 130px; cursor: pointer;
+}
 
 /* ============================================================
    States

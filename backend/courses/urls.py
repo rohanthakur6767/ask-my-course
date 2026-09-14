@@ -13,6 +13,11 @@ from courses.views import (
     MaterialsView,
     HistoryView,
     InsightsView,
+    UnitCreateView,
+    UnitDetailView,
+    LessonCreateView,
+    LessonDetailView,
+    MaterialDetailView,
 )
 
 urlpatterns = [
@@ -36,4 +41,11 @@ urlpatterns = [
     path("courses/<uuid:course_id>/materials", MaterialsView.as_view(), name="materials"),
     path("courses/<uuid:course_id>/history", HistoryView.as_view(), name="history"),
     path("courses/<uuid:course_id>/insights", InsightsView.as_view(), name="insights"),
+
+    # Structure editing (rename / add / move / delete)
+    path("courses/<uuid:course_id>/units", UnitCreateView.as_view(), name="unit-create"),
+    path("units/<uuid:unit_id>", UnitDetailView.as_view(), name="unit-detail"),
+    path("units/<uuid:unit_id>/lessons", LessonCreateView.as_view(), name="lesson-create"),
+    path("lessons/<uuid:lesson_id>", LessonDetailView.as_view(), name="lesson-detail"),
+    path("materials/<uuid:material_id>", MaterialDetailView.as_view(), name="material-detail"),
 ]

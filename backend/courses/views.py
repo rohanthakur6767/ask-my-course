@@ -12,7 +12,13 @@ from django.core.files.storage import default_storage
 from django.db import connection
 from django.db.models import Count
 
-from courses.models import Course, Material, ChatSession
+from courses.models import Course, Unit, Lesson, Material, ChatSession
+from courses.services.structure import (
+    create_unit, rename_unit, delete_unit,
+    create_lesson, rename_lesson, move_lesson, delete_lesson,
+    rename_material, move_material, delete_material,
+    StructureError,
+)
 from courses.serializers import (
     AskSerializer,
     CourseSerializer,
@@ -414,3 +420,120 @@ class InsightsView(APIView):
             "top_questions": top_questions,
             "gaps": gaps,
         })
+
+
+# ============================================================
+# Structure editing (rename / add / move / delete)
+# The frontend refetches /structure after any of these, so we return minimal data.
+# ============================================================
+def _get_or_404(model, **kw):
+    try:
+        return model.objects.get(**kw), None
+    except model.DoesNotExist:
+        return None, Response({"error": f"{model.__name__} not found"},
+                              status=status.HTTP_404_NOT_FOUND)
+
+
+class UnitCreateView(APIView):
+    """POST /api/v1/courses/<course_id>/units  -> create a unit"""
+    def post(self, request, course_id):
+        course, err = _get_or_404(Course, id=course_id)
+        if err:
+            return err
+        try:
+            unit = create_unit(course, request.data.get("name", ""))
+        except StructureError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"id": str(unit.id), "name": unit.name}, status=status.HTTP_201_CREATED)
+
+
+class UnitDetailView(APIView):
+    """PATCH/DELETE /api/v1/units/<unit_id>  -> rename or delete a unit"""
+    def patch(self, request, unit_id):
+        unit, err = _get_or_404(Unit, id=unit_id)
+        if err:
+            return err
+        try:
+            if "name" in request.data:
+                rename_unit(unit, request.data.get("name", ""))
+        except StructureError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"id": str(unit.id), "name": unit.name})
+
+    def delete(self, request, unit_id):
+        unit, err = _get_or_404(Unit, id=unit_id)
+        if err:
+            return err
+        delete_unit(unit)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class LessonCreateView(APIView):
+    """POST /api/v1/units/<unit_id>/lessons  -> create a lesson"""
+    def post(self, request, unit_id):
+        unit, err = _get_or_404(Unit, id=unit_id)
+        if err:
+            return err
+        try:
+            lesson = create_lesson(unit, request.data.get("name", ""))
+        except StructureError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"id": str(lesson.id), "name": lesson.name}, status=status.HTTP_201_CREATED)
+
+
+class LessonDetailView(APIView):
+    """PATCH/DELETE /api/v1/lessons/<lesson_id>  -> rename, move, or delete a lesson"""
+    def patch(self, request, lesson_id):
+        lesson, err = _get_or_404(Lesson, id=lesson_id)
+        if err:
+            return err
+        try:
+            if "name" in request.data:
+                rename_lesson(lesson, request.data.get("name", ""))
+            if request.data.get("unit_id"):
+                new_unit, uerr = _get_or_404(Unit, id=request.data["unit_id"])
+                if uerr:
+                    return uerr
+                if new_unit.course_id != lesson.unit.course_id:
+                    return Response({"error": "Cannot move a lesson to another course."},
+                                    status=status.HTTP_400_BAD_REQUEST)
+                move_lesson(lesson, new_unit)
+        except StructureError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"id": str(lesson.id), "name": lesson.name})
+
+    def delete(self, request, lesson_id):
+        lesson, err = _get_or_404(Lesson, id=lesson_id)
+        if err:
+            return err
+        delete_lesson(lesson)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class MaterialDetailView(APIView):
+    """PATCH/DELETE /api/v1/materials/<material_id>  -> rename, move, or delete a material"""
+    def patch(self, request, material_id):
+        material, err = _get_or_404(Material, id=material_id)
+        if err:
+            return err
+        try:
+            if "file_name" in request.data:
+                rename_material(material, request.data.get("file_name", ""))
+            if request.data.get("lesson_id"):
+                new_lesson, lerr = _get_or_404(Lesson, id=request.data["lesson_id"])
+                if lerr:
+                    return lerr
+                if new_lesson.unit.course_id != material.lesson.unit.course_id:
+                    return Response({"error": "Cannot move a material to another course."},
+                                    status=status.HTTP_400_BAD_REQUEST)
+                move_material(material, new_lesson)
+        except StructureError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"id": str(material.id), "file_name": material.file_name})
+
+    def delete(self, request, material_id):
+        material, err = _get_or_404(Material, id=material_id)
+        if err:
+            return err
+        delete_material(material)
+        return Response(status=status.HTTP_204_NO_CONTENT)

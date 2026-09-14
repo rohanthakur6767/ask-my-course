@@ -29,6 +29,7 @@ export default function StudentAsk() {
 
   const convId = useRef(null);
   const bottomRef = useRef(null);
+  const scrollToBottom = () => bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
 
   // Restore an in-progress conversation for this course (survives a page refresh).
   useEffect(() => {
@@ -36,7 +37,8 @@ export default function StudentAsk() {
       const saved = JSON.parse(sessionStorage.getItem(storeKey) || "null");
       if (saved && saved.conversationId) {
         convId.current = saved.conversationId;
-        setMessages(saved.messages || []);
+        // Restored answers show instantly (only freshly-asked ones "type").
+        setMessages((saved.messages || []).map((m) => ({ ...m, animate: false })));
       }
     } catch { /* ignore malformed storage */ }
     if (!convId.current) convId.current = newConversationId();
@@ -79,7 +81,7 @@ export default function StudentAsk() {
       const res = await api.ask(courseId, q, 5, convId.current);
       // The backend echoes the conversation_id; keep ours in sync.
       if (res.conversation_id) convId.current = res.conversation_id;
-      setMessages((prev) => [...prev, { role: "assistant", result: res }]);
+      setMessages((prev) => [...prev, { role: "assistant", result: res, animate: true }]);
     } catch (err) {
       setAskError(err.message);
     } finally {
@@ -143,7 +145,7 @@ export default function StudentAsk() {
         {messages.map((m, i) =>
           m.role === "user"
             ? <UserBubble key={i} text={m.text} />
-            : <AnswerBubble key={i} result={m.result} />
+            : <AnswerBubble key={i} result={m.result} animate={m.animate} onGrow={scrollToBottom} />
         )}
 
         {asking && <ThinkingBubble />}
@@ -193,9 +195,33 @@ function ThinkingBubble() {
   );
 }
 
-function AnswerBubble({ result }) {
+// Reveal `text` progressively for a "typing" feel. Freshly-asked answers animate;
+// restored ones (animate=false) and reduced-motion users see it instantly.
+function useTypedReveal(text, animate, onGrow) {
+  const [n, setN] = useState(animate ? 0 : text.length);
+  useEffect(() => {
+    if (!animate ||
+        (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) {
+      setN(text.length);
+      return;
+    }
+    let i = 0;
+    const step = Math.max(1, Math.ceil(text.length / 75));  // reveal in ~75 ticks (~1.5s)
+    const id = setInterval(() => {
+      i += step;
+      if (i >= text.length) { setN(text.length); clearInterval(id); }
+      else { setN(i); if (onGrow) onGrow(); }
+    }, 20);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text, animate]);
+  return { shown: text.slice(0, n), done: n >= text.length };
+}
+
+function AnswerBubble({ result, animate = false, onGrow }) {
   const { answer, sources = [], confidence, guardrail_triggered } = result;
   const [copied, setCopied] = useState(false);
+  const { shown, done } = useTypedReveal(answer, animate && !guardrail_triggered, onGrow);
 
   async function copyAnswer() {
     try {
@@ -237,9 +263,12 @@ function AnswerBubble({ result }) {
           </div>
         </div>
 
-        <div className="answer"><ReactMarkdown>{answer}</ReactMarkdown></div>
+        <div className="answer">
+          <ReactMarkdown>{shown}</ReactMarkdown>
+          {!done && <span className="type-cursor" aria-hidden="true" />}
+        </div>
 
-        {shownSources.length > 0 && (
+        {done && shownSources.length > 0 && (
           <div style={{ marginTop: "var(--s4)" }}>
             <div className="card-sub" style={{ marginBottom: "var(--s2)", fontWeight: 600 }}>Sources</div>
             <div className="sources">

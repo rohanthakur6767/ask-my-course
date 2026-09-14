@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { api } from "../api/client.js";
 import {
   Loading, ErrorState, EmptyState, ErrorBanner, Badge,
-  formatDate, formatBytes, materialTypeLabel,
+  formatDate, formatBytes, materialTypeLabel, fileTypeLabel,
 } from "../components/ui.jsx";
 
 export default function TeacherCourse() {
@@ -66,7 +66,7 @@ export default function TeacherCourse() {
       <div className="two-col">
         <div className="stack">
           <FolderUploadPanel courseId={courseId} onDone={load} />
-          <UploadPanel courseId={courseId} onDone={load} />
+          <UploadPanel courseId={courseId} structure={structure} onDone={load} />
         </div>
 
         <div className="stack">
@@ -74,7 +74,7 @@ export default function TeacherCourse() {
             <GetStarted />
           ) : (
             <>
-              <StructureCard structure={structure} />
+              <StructureCard structure={structure} onChanged={load} />
               <MaterialsCard materials={materials} />
             </>
           )}
@@ -113,7 +113,7 @@ function GetStarted() {
   );
 }
 
-function UploadPanel({ courseId, onDone }) {
+function UploadPanel({ courseId, structure, onDone }) {
   const fileRef = useRef(null);
   const [file, setFile] = useState(null);
   const [dragOver, setDragOver] = useState(false);
@@ -129,18 +129,30 @@ function UploadPanel({ courseId, onDone }) {
   const [fileName, setFileName] = useState("");
   const [segments, setSegments] = useState([]);
 
-  // manual "single lesson" fallback
-  const [unit, setUnit] = useState("");
-  const [lesson, setLesson] = useState("");
+  // manual "single lesson": pick an existing unit/lesson, or create a new one
+  const [unitChoice, setUnitChoice] = useState("");     // unit name, "" (default), or "__new__"
+  const [newUnitName, setNewUnitName] = useState("");
+  const [lessonChoice, setLessonChoice] = useState(""); // lesson name, "" (default), or "__new__"
+  const [newLessonName, setNewLessonName] = useState("");
+
+  const existingUnits = (structure && structure.units) || [];
+  const pickedUnit = existingUnits.find((u) => u.name === unitChoice);
+  const lessonsForUnit = pickedUnit ? (pickedUnit.lessons || []) : [];
 
   function pickFile(f) {
     if (!f) return;
-    const isPdf = f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf");
-    if (!isPdf) { setError("Please choose a PDF file."); return; }
+    const ext = (f.name.split(".").pop() || "").toLowerCase();
+    if (!["pdf", "docx", "pptx"].includes(ext)) {
+      setError("Please choose a PDF, Word (.docx), or PowerPoint (.pptx) file.");
+      return;
+    }
     setError("");
     setResult(null);
     setFile(f);
   }
+
+  // Auto-structure ("Analyze") only works on PDFs (it splits by page ranges).
+  const isPdfFile = file && file.name.toLowerCase().endsWith(".pdf");
 
   function clearFile() {
     setFile(null);
@@ -196,17 +208,21 @@ function UploadPanel({ courseId, onDone }) {
 
   async function handleManualUpload(e) {
     e.preventDefault();
-    if (!file) { setError("Please choose a PDF first."); return; }
+    if (!file) { setError("Please choose a file first."); return; }
+    // Resolve the chosen unit/lesson to names the backend files things under.
+    const unitName = (unitChoice === "__new__" ? newUnitName : unitChoice).trim();
+    const lessonName = (lessonChoice === "__new__" ? newLessonName : lessonChoice).trim();
     setError(""); setResult(null); setBusy(true);
     try {
       const fd = new FormData();
       fd.append("file", file);
-      fd.append("unit_name", unit.trim());
-      fd.append("lesson_name", lesson.trim());
+      fd.append("unit_name", unitName);
+      fd.append("lesson_name", lessonName);
       fd.append("material_type", type);
       const res = await api.ingest(courseId, fd);
       setResult(res);
       clearFile();
+      setUnitChoice(""); setNewUnitName(""); setLessonChoice(""); setNewLessonName("");
       onDone();
     } catch (err) {
       setError(err.message);
@@ -276,28 +292,28 @@ function UploadPanel({ courseId, onDone }) {
   // ================= CHOOSE STEP =================
   return (
     <div className="card card-pad">
-      <div className="card-title">Upload material</div>
+      <div className="card-title">Add a file</div>
       <p className="card-sub" style={{ marginBottom: "var(--s4)" }}>
-        Add a PDF. Analyze it to detect units and lessons automatically.
+        Add a PDF, Word, or PowerPoint file. A PDF can be auto-structured into units and lessons.
       </p>
 
       <div className="field">
-        <label>PDF file</label>
+        <label>File</label>
         <div
           className={`dropzone ${dragOver ? "over" : ""}`}
           role="button" tabIndex={0}
-          aria-label="Choose a PDF file or drop one here"
+          aria-label="Choose a file or drop one here"
           onClick={() => !busy && fileRef.current?.click()}
           onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && !busy) { e.preventDefault(); fileRef.current?.click(); } }}
           onDragOver={(e) => { e.preventDefault(); if (!busy) setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onDrop={(e) => { e.preventDefault(); setDragOver(false); if (!busy) pickFile(e.dataTransfer.files?.[0]); }}
         >
-          <input ref={fileRef} type="file" accept="application/pdf,.pdf" hidden
+          <input ref={fileRef} type="file" accept=".pdf,.docx,.pptx" hidden
                  onChange={(e) => pickFile(e.target.files?.[0])} disabled={busy} />
           {file ? (
             <div className="dz-file">
-              <span className="dz-doc" aria-hidden="true">PDF</span>
+              <span className="dz-doc" aria-hidden="true">{(file.name.split(".").pop() || "").toUpperCase()}</span>
               <div className="dz-meta">
                 <div className="dz-name">{file.name}</div>
                 <div className="dz-size">{formatBytes(file.size)}</div>
@@ -308,8 +324,8 @@ function UploadPanel({ courseId, onDone }) {
           ) : (
             <div className="dz-empty">
               <div className="dz-icon" aria-hidden="true">⇪</div>
-              <div><span className="dz-strong">Choose a PDF</span> or drag it here</div>
-              <div className="dz-hint">PDF files only</div>
+              <div><span className="dz-strong">Choose a file</span> or drag it here</div>
+              <div className="dz-hint">PDF, Word (.docx), or PowerPoint (.pptx)</div>
             </div>
           )}
         </div>
@@ -332,25 +348,48 @@ function UploadPanel({ courseId, onDone }) {
         </div>
       )}
 
-      <button type="button" className="btn btn-primary btn-block" onClick={handleAnalyze} disabled={busy}
-              style={{ marginTop: "var(--s3)" }}>
+      <button type="button" className="btn btn-primary btn-block" onClick={handleAnalyze}
+              disabled={busy || !isPdfFile} style={{ marginTop: "var(--s3)" }}>
         {busy ? "Analyzing..." : "Analyze with AI"}
       </button>
+      <span className="hint" style={{ display: "block", marginTop: "6px" }}>
+        {isPdfFile
+          ? "Detects units and lessons from the PDF, then you confirm."
+          : "Auto-structuring into units and lessons works with PDFs. Word and PowerPoint upload as one lesson below."}
+      </span>
 
       <div className="or-divider">or add as a single lesson</div>
 
       <form onSubmit={handleManualUpload}>
         <div className="field">
-          <label htmlFor="unit">Unit <span className="hint">(optional)</span></label>
-          <input id="unit" className="input" value={unit} placeholder="e.g. Cell Biology"
-                 onChange={(e) => setUnit(e.target.value)} disabled={busy} />
+          <label htmlFor="unit">Unit</label>
+          <select id="unit" className="select" value={unitChoice} disabled={busy}
+                  onChange={(e) => { setUnitChoice(e.target.value); setLessonChoice(""); setNewLessonName(""); }}>
+            <option value="">Default unit</option>
+            {existingUnits.map((u) => <option key={u.id} value={u.name}>{u.name}</option>)}
+            <option value="__new__">+ New unit&hellip;</option>
+          </select>
+          {unitChoice === "__new__" && (
+            <input className="input" placeholder="New unit name" value={newUnitName}
+                   onChange={(e) => setNewUnitName(e.target.value)} disabled={busy}
+                   style={{ marginTop: "var(--s2)" }} />
+          )}
         </div>
         <div className="field">
-          <label htmlFor="lesson">Lesson <span className="hint">(optional)</span></label>
-          <input id="lesson" className="input" value={lesson} placeholder="e.g. Organelles"
-                 onChange={(e) => setLesson(e.target.value)} disabled={busy} />
+          <label htmlFor="lesson">Lesson</label>
+          <select id="lesson" className="select" value={lessonChoice} disabled={busy}
+                  onChange={(e) => setLessonChoice(e.target.value)}>
+            <option value="">Default lesson</option>
+            {lessonsForUnit.map((l) => <option key={l.id} value={l.name}>{l.name}</option>)}
+            <option value="__new__">+ New lesson&hellip;</option>
+          </select>
+          {lessonChoice === "__new__" && (
+            <input className="input" placeholder="New lesson name" value={newLessonName}
+                   onChange={(e) => setNewLessonName(e.target.value)} disabled={busy}
+                   style={{ marginTop: "var(--s2)" }} />
+          )}
         </div>
-        <button className="btn btn-ghost btn-block" disabled={busy}>
+        <button className={`btn btn-block ${isPdfFile ? "btn-ghost" : "btn-primary"}`} disabled={busy}>
           {busy ? "Working..." : "Upload as one lesson"}
         </button>
       </form>
@@ -477,32 +516,113 @@ function FolderUploadPanel({ courseId, onDone }) {
   );
 }
 
-function StructureCard({ structure }) {
+function StructureCard({ structure, onChanged }) {
   const units = structure.units || [];
+  const [busy, setBusy] = useState(false);
+
+  // A flat list of all lessons, for the "move material" dropdown.
+  const allLessons = [];
+  units.forEach((u) => (u.lessons || []).forEach((l) =>
+    allLessons.push({ id: l.id, label: `${u.name} › ${l.name}` })));
+
+  // Run an edit, then refresh the tree. Errors are surfaced simply.
+  async function run(fn) {
+    setBusy(true);
+    try { await fn(); await onChanged(); }
+    catch (e) { alert(e.message || "Something went wrong."); }
+    finally { setBusy(false); }
+  }
+
+  const addUnit = () => {
+    const n = window.prompt("New unit name:");
+    if (n && n.trim()) run(() => api.createUnit(structure.id, n.trim()));
+  };
+  const renameUnit = (u) => {
+    const n = window.prompt("Rename unit:", u.name);
+    if (n && n.trim() && n.trim() !== u.name) run(() => api.renameUnit(u.id, n.trim()));
+  };
+  const deleteUnit = (u) => {
+    if (window.confirm(`Delete unit "${u.name}" and everything inside it?`)) run(() => api.deleteUnit(u.id));
+  };
+  const addLesson = (u) => {
+    const n = window.prompt(`New lesson in "${u.name}":`);
+    if (n && n.trim()) run(() => api.createLesson(u.id, n.trim()));
+  };
+  const renameLesson = (l) => {
+    const n = window.prompt("Rename lesson:", l.name);
+    if (n && n.trim() && n.trim() !== l.name) run(() => api.updateLesson(l.id, { name: n.trim() }));
+  };
+  const deleteLesson = (l) => {
+    if (window.confirm(`Delete lesson "${l.name}" and its materials?`)) run(() => api.deleteLesson(l.id));
+  };
+  const deleteMaterial = (m) => {
+    if (window.confirm(`Delete "${m.file_name}"?`)) run(() => api.deleteMaterial(m.id));
+  };
+  const moveMaterial = (m, lessonId) => {
+    if (lessonId) run(() => api.updateMaterial(m.id, { lesson_id: lessonId }));
+  };
+
   return (
     <div className="card card-pad">
-      <div className="card-title">Course structure</div>
-      <div className="tree" style={{ marginTop: "var(--s3)" }}>
-        {units.map((u) => (
-          <div key={u.id} className="tree-unit">
-            <div className="row">{u.name}</div>
-            <div style={{ padding: "6px 10px 10px" }}>
-              {(u.lessons || []).map((l) => (
-                <div key={l.id} className="tree-lesson">
-                  <div className="row">{l.name}</div>
-                  {(l.materials || []).map((m) => (
-                    <div key={m.id} className="tree-material">
-                      <span className="doc" aria-hidden="true">▸</span>
-                      <span>{m.file_name}</span>
-                      <Badge tone="muted">{materialTypeLabel(m.material_type)}</Badge>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
+      <div className="row-between" style={{ marginBottom: "var(--s3)" }}>
+        <div className="card-title" style={{ margin: 0 }}>Course structure</div>
+        <button className="btn btn-ghost btn-sm" onClick={addUnit} disabled={busy}>+ Add unit</button>
       </div>
+
+      {units.length === 0 ? (
+        <div className="card-sub">No units yet. Add one, or upload materials on the left.</div>
+      ) : (
+        <div className="tree">
+          {units.map((u) => (
+            <div key={u.id} className="tree-unit">
+              <div className="row edit-row">
+                <span className="edit-name">{u.name}</span>
+                <span className="edit-actions">
+                  <button title="Rename unit" onClick={() => renameUnit(u)} disabled={busy}>&#9998;</button>
+                  <button title="Add lesson" onClick={() => addLesson(u)} disabled={busy}>+</button>
+                  <button title="Delete unit" onClick={() => deleteUnit(u)} disabled={busy}>&#10005;</button>
+                </span>
+              </div>
+              <div style={{ padding: "6px 10px 10px" }}>
+                {(u.lessons || []).map((l) => (
+                  <div key={l.id} className="tree-lesson">
+                    <div className="row edit-row">
+                      <span className="edit-name">{l.name}</span>
+                      <span className="edit-actions">
+                        <button title="Rename lesson" onClick={() => renameLesson(l)} disabled={busy}>&#9998;</button>
+                        <button title="Delete lesson" onClick={() => deleteLesson(l)} disabled={busy}>&#10005;</button>
+                      </span>
+                    </div>
+                    {(l.materials || []).map((m) => (
+                      <div key={m.id} className="tree-material edit-row">
+                        <span className="doc" aria-hidden="true">&#9656;</span>
+                        <span className="edit-name">{m.file_name}</span>
+                        <Badge tone="muted">{fileTypeLabel(m.file_type)}</Badge>
+                        {allLessons.length > 1 && (
+                          <select className="move-select" value="" disabled={busy}
+                                  onChange={(e) => moveMaterial(m, e.target.value)}>
+                            <option value="">Move to&hellip;</option>
+                            {allLessons.filter((x) => x.id !== l.id).map((x) => (
+                              <option key={x.id} value={x.id}>{x.label}</option>
+                            ))}
+                          </select>
+                        )}
+                        <button className="mini-del" title="Delete material" onClick={() => deleteMaterial(m)} disabled={busy}>&#10005;</button>
+                      </div>
+                    ))}
+                    {(l.materials || []).length === 0 && (
+                      <div className="card-sub" style={{ padding: "2px 0 4px 18px" }}>No materials in this lesson.</div>
+                    )}
+                  </div>
+                ))}
+                {(u.lessons || []).length === 0 && (
+                  <div className="card-sub" style={{ padding: "2px 0" }}>No lessons yet.</div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -532,7 +652,7 @@ function MaterialsCard({ materials }) {
                   <td>{m.file_name}</td>
                   <td>{m.unit}</td>
                   <td>{m.lesson}</td>
-                  <td>{materialTypeLabel(m.material_type)}</td>
+                  <td>{fileTypeLabel(m.file_type)}</td>
                   <td className="num">{m.chunk_count}</td>
                   <td>{formatDate(m.uploaded_at)}</td>
                 </tr>

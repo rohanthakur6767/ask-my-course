@@ -76,6 +76,11 @@ export function materialTypeLabel(type) {
   return { pdf: "PDF", syllabus: "Syllabus", note: "Note" }[type] || type;
 }
 
+// The actual file format (PDF / DOCX / PPTX) for the "Type" badge/column.
+export function fileTypeLabel(fileType) {
+  return (fileType || "").toUpperCase() || "FILE";
+}
+
 // Human-readable file size.
 export function formatBytes(bytes) {
   if (bytes == null) return "";

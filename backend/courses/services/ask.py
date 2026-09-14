@@ -4,7 +4,8 @@ import re
 
 from courses.models import Course, ChatSession
 from courses.services.retriever import retrieve
-from courses.services.generator import generate_answer
+from courses.services.generator import generate_answer, generate_combined
+from courses.services.decomposer import decompose_question
 
 
 GUARDRAIL_THRESHOLD = 0.5   # refuse if the best match is weaker than this
@@ -59,6 +60,13 @@ def _looks_like_refusal(answer: str) -> bool:
     """True when the model's answer is itself a 'not in the materials' refusal."""
     low = answer.lower()
     return any(hint in low for hint in _REFUSAL_HINTS)
+
+
+def _looks_multipart(question: str) -> bool:
+    """Cheap check for whether a question might contain several parts. We only pay
+    for the decomposition LLM call when this is true, so simple questions stay fast."""
+    low = question.lower()
+    return (" and " in low) or (";" in question) or (" also " in low) or (question.count("?") > 1)
 
 
 def _location_label(c) -> str:
@@ -137,35 +145,72 @@ def answer_question(course_id: str, question: str, user_id: str = "", top_k: int
         return {"answer": SMALLTALK_MESSAGE, "sources": [], "confidence": 0.0,
                 "guardrail_triggered": False, "conversation_id": conv}
 
-    # For a follow-up, anchor the search with the previous question so a vague
-    # question ("explain that") still retrieves the right chunks.
-    retrieval_query = question
-    if history:
-        retrieval_query = f"{history[-1]['question']} {question}"
+    # Split a MIXED question into parts - but only when it looks multi-part and is
+    # a fresh question (not a follow-up). Each part is judged on its own, so we can
+    # answer the covered parts and refuse the rest, never using outside knowledge.
+    parts = [question]
+    if not history and _looks_multipart(question):
+        parts = decompose_question(question)
 
-    chunks = retrieve(course_id, retrieval_query, top_k=top_k)
+    if len(parts) <= 1:
+        # --- Single-question flow ---
+        # For a follow-up, anchor the search with the previous question so a vague
+        # question ("explain that") still retrieves the right chunks.
+        retrieval_query = question
+        if history:
+            retrieval_query = f"{history[-1]['question']} {question}"
 
-    # Guardrail: if there is nothing, or the best match is too weak, refuse.
-    top_score = chunks[0].score if chunks else 0.0
-    guardrail_triggered = top_score < GUARDRAIL_THRESHOLD
+        chunks = retrieve(course_id, retrieval_query, top_k=top_k)
+        top_score = chunks[0].score if chunks else 0.0
+        guardrail_triggered = top_score < GUARDRAIL_THRESHOLD
 
-    if guardrail_triggered:
-        answer = REFUSAL_MESSAGE
-        sources = []
-    else:
-        answer = generate_answer(question, chunks, history=history)
-        # Second guardrail layer: the model may (correctly) decline when the
-        # retrieved chunks do not actually contain the answer, even though the top
-        # score cleared the threshold. Treat that as a refusal so the UI shows the
-        # refusal card instead of a weak "answer" with misleading sources.
-        if _looks_like_refusal(answer):
-            guardrail_triggered = True
+        if guardrail_triggered:
             answer = REFUSAL_MESSAGE
             sources = []
         else:
-            sources = _build_sources(chunks)
+            answer = generate_answer(question, chunks, history=history)
+            # Second guardrail layer: the model may (correctly) decline when the
+            # retrieved chunks do not actually contain the answer, even though the
+            # top score cleared the threshold. Treat that as a refusal.
+            if _looks_like_refusal(answer):
+                guardrail_triggered = True
+                answer = REFUSAL_MESSAGE
+                sources = []
+            else:
+                sources = _build_sources(chunks)
+        confidence = round(top_score, 3)
+    else:
+        # --- Mixed-question flow: judge each part on its own ---
+        covered, uncovered, best_scores = [], [], []
+        for part in parts:
+            pchunks = retrieve(course_id, part, top_k=top_k)
+            ptop = pchunks[0].score if pchunks else 0.0
+            if ptop >= GUARDRAIL_THRESHOLD:
+                covered.append({"question": part, "chunks": pchunks})
+                best_scores.append(ptop)
+            else:
+                uncovered.append(part)
 
-    confidence = round(top_score, 3)
+        if not covered:
+            # No part of the question is in the course -> refuse the whole thing.
+            answer = REFUSAL_MESSAGE
+            sources = []
+            guardrail_triggered = True
+            confidence = 0.0
+        else:
+            answer = generate_combined(question, covered, uncovered, history=history)
+            # Merge + de-duplicate the covered chunks into one clean source list.
+            merged, seen = [], set()
+            for part in covered:
+                for ch in part["chunks"]:
+                    key = (ch.file_name, ch.location_kind, ch.location_value, ch.chunk_text[:80])
+                    if key not in seen:
+                        seen.add(key)
+                        merged.append(ch)
+            merged.sort(key=lambda c: c.score, reverse=True)
+            sources = _build_sources(merged[:top_k])
+            guardrail_triggered = False
+            confidence = round(max(best_scores), 3)
 
     ChatSession.objects.create(
         course_id=course_id, user_id=user_id, conversation_id=conversation_id,

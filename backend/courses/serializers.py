@@ -32,7 +32,7 @@ class CourseSerializer(serializers.ModelSerializer):
 class MaterialSerializer(serializers.ModelSerializer):
     class Meta:
         model = Material
-        fields = ["id", "file_name", "material_type", "uploaded_at"]
+        fields = ["id", "file_name", "material_type", "file_type", "uploaded_at"]
 
 
 class LessonSerializer(serializers.ModelSerializer):
