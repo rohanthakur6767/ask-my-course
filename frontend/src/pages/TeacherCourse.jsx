@@ -64,7 +64,10 @@ export default function TeacherCourse() {
       </div>
 
       <div className="two-col">
-        <UploadPanel courseId={courseId} onDone={load} />
+        <div className="stack">
+          <FolderUploadPanel courseId={courseId} onDone={load} />
+          <UploadPanel courseId={courseId} onDone={load} />
+        </div>
 
         <div className="stack">
           {isEmpty ? (
@@ -351,6 +354,125 @@ function UploadPanel({ courseId, onDone }) {
           {busy ? "Working..." : "Upload as one lesson"}
         </button>
       </form>
+    </div>
+  );
+}
+
+const FOLDER_SUPPORTED = ["pdf", "docx", "pptx"];
+
+function FolderUploadPanel({ courseId, onDone }) {
+  const inputRef = useRef(null);
+  const [files, setFiles] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState(null);
+  const [progress, setProgress] = useState(null);   // { done, total, current }
+
+  // webkitdirectory isn't a standard React prop, so set it on the DOM element.
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.setAttribute("webkitdirectory", "");
+      inputRef.current.setAttribute("directory", "");
+    }
+  }, []);
+
+  function pick(fileList) {
+    const kept = Array.from(fileList || []).filter((f) =>
+      FOLDER_SUPPORTED.includes((f.name.split(".").pop() || "").toLowerCase())
+    );
+    setError(kept.length === 0 ? "No PDF, DOCX, or PPTX files found in that folder." : "");
+    setResult(null);
+    setFiles(kept);
+  }
+
+  async function upload() {
+    if (files.length === 0) { setError("Choose a folder first."); return; }
+    setBusy(true); setError(""); setResult(null);
+
+    // Upload ONE FILE AT A TIME. This way a single unreadable file (e.g. a
+    // cloud-only OneDrive file, or one open in Word/PowerPoint) fails on its own
+    // with a clear message, instead of killing the whole batch.
+    const ingested = [];
+    const failed = [];
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      setProgress({ done: i, total: files.length, current: f.name });
+      try {
+        const fd = new FormData();
+        fd.append("files", f);
+        fd.append("paths", f.webkitRelativePath || f.name);
+        const res = await api.ingestFolder(courseId, fd);
+        (res.ingested || []).forEach((x) => ingested.push(x));
+        (res.failed || []).forEach((x) => failed.push(x));
+      } catch (err) {
+        // fetch itself threw: the browser could not read/send this file.
+        failed.push({
+          file: f.name,
+          error: err.message === "Cannot reach the server. Is the backend running?"
+            ? "Could not read this file (it may be cloud-only/OneDrive, or open in another app)."
+            : err.message,
+        });
+      }
+    }
+
+    setProgress(null);
+    setResult({
+      files_ingested: ingested.length,
+      files_failed: failed.length,
+      total_chunks: ingested.reduce((a, x) => a + (x.chunks || 0), 0),
+      ingested, failed,
+    });
+    setFiles([]);
+    if (inputRef.current) inputRef.current.value = "";
+    onDone();
+    setBusy(false);
+  }
+
+  return (
+    <div className="card card-pad">
+      <div className="card-title">Upload a course folder</div>
+      <p className="card-sub" style={{ marginBottom: "var(--s4)" }}>
+        Pick a folder of PDF, Word, and PowerPoint files. Sub-folders become units.
+      </p>
+
+      <input ref={inputRef} type="file" multiple hidden
+             onChange={(e) => pick(e.target.files)} disabled={busy} />
+
+      {files.length === 0 ? (
+        <button type="button" className="btn btn-primary btn-block"
+                onClick={() => inputRef.current?.click()} disabled={busy}>
+          Choose folder
+        </button>
+      ) : (
+        <>
+          <div className="card-sub" style={{ marginBottom: "var(--s2)" }}>
+            {files.length} supported file{files.length === 1 ? "" : "s"} selected
+          </div>
+          <div style={{ display: "flex", gap: "var(--s2)" }}>
+            <button type="button" className="btn btn-ghost" onClick={() => setFiles([])} disabled={busy}>
+              Clear
+            </button>
+            <button type="button" className="btn btn-primary" style={{ flex: 1 }} onClick={upload} disabled={busy}>
+              {busy
+                ? (progress ? `Uploading ${progress.done + 1}/${progress.total}...` : "Uploading...")
+                : `Upload ${files.length} file${files.length === 1 ? "" : "s"}`}
+            </button>
+          </div>
+        </>
+      )}
+
+      {error && <div style={{ marginTop: "var(--s3)" }}><ErrorBanner message={error} /></div>}
+      {result && (
+        <div className="notice-ok" style={{ marginTop: "var(--s3)" }}>
+          Ingested {result.files_ingested} file{result.files_ingested === 1 ? "" : "s"} ({result.total_chunks} chunks).
+          {result.files_failed > 0 ? ` ${result.files_failed} skipped.` : ""}
+        </div>
+      )}
+      {result && result.failed && result.failed.length > 0 && (
+        <ul className="foldl-fail">
+          {result.failed.map((f, i) => <li key={i}>{f.file}: {f.error}</li>)}
+        </ul>
+      )}
     </div>
   );
 }

@@ -12,11 +12,13 @@ create parent rows only when they are missing.
 import time
 from pathlib import Path
 
+from django.conf import settings
 from django.db import transaction
 
 from courses.models import Course, Unit, Lesson, Material, Embedding
 from courses.services.pdf_extractor import extract_pages
-from courses.services.chunker import chunk_pages
+from courses.services.chunker import chunk_pages, chunk_segments
+from courses.services.extractors import extract_segments, file_type_of
 from courses.services.embedder import embed_texts
 
 
@@ -24,6 +26,17 @@ from courses.services.embedder import embed_texts
 # they land under these clearly named defaults. Kept as constants here, not as
 DEFAULT_UNIT_NAME = "Course Information"
 DEFAULT_LESSON_NAME = "General"
+
+
+def _media_url(file_path: str) -> str:
+    """Turn a saved file path into a link the browser can open. Works when the
+    file lives under MEDIA_ROOT (local/dev). Cloud storage returns its own URL
+    in a later phase; this stays a safe fallback."""
+    try:
+        rel = Path(file_path).resolve().relative_to(Path(settings.MEDIA_ROOT).resolve())
+        return settings.MEDIA_URL + str(rel).replace("\\", "/")
+    except Exception:
+        return ""
 
 
 class IngestError(Exception):
@@ -73,12 +86,13 @@ def ingest_material(
     unit_name = (unit_name or DEFAULT_UNIT_NAME).strip()
     lesson_name = (lesson_name or DEFAULT_LESSON_NAME).strip()
     file_name = (file_name or Path(file_path).name).strip()
+    file_type = (file_type or file_type_of(file_path) or "pdf").lower()
 
     # --- Heavy work FIRST, outside the database transaction ---
-    # Extracting and embedding can be slow (embedding hits the network in real
-    # mode), and we do not want to hold a database transaction open while we wait.
-    pages = extract_pages(file_path)                          # may raise PdfExtractionError
-    chunks = chunk_pages(pages)
+    # Extract (any of PDF / DOCX / PPTX) into common segments, then chunk them.
+    # Embedding hits the network, so we do it before opening the DB transaction.
+    segments = extract_segments(file_path, file_type)         # may raise ExtractionError
+    chunks = chunk_segments(segments)
 
     if not chunks:
         raise IngestError(f"No chunks produced from file: {file_path}")
@@ -93,12 +107,14 @@ def ingest_material(
 
         # Reuse the material if this exact file was ingested before (same lesson
         # + same file name), so a re-upload updates it instead of duplicating.
+        source_url = _media_url(file_path)
         material, created = Material.objects.get_or_create(
             lesson=lesson,
             file_name=file_name,
             defaults={
                 "file_path": file_path,
                 "file_type": file_type,
+                "source_url": source_url,
                 "material_type": material_type,
             },
         )
@@ -107,6 +123,7 @@ def ingest_material(
             # pile up duplicate embeddings. This is the "idempotent" behaviour.
             material.file_path = file_path
             material.file_type = file_type
+            material.source_url = source_url
             material.material_type = material_type
             material.save()
             material.embeddings.all().delete()
@@ -119,6 +136,10 @@ def ingest_material(
                 chunk_text=chunk.text,
                 chunk_index=chunk.chunk_index,
                 page_number=chunk.page_number,
+                location_kind=chunk.location_kind,     # page / slide / section
+                location_value=chunk.location_value,
+                location_label=chunk.location_label,
+                file_name=material.file_name,           # denormalized, file-centric citations
                 unit_name=unit.name,       # denormalized, for fast citations
                 lesson_name=lesson.name,   # denormalized, for fast citations
                 embedding=vector,
@@ -133,7 +154,7 @@ def ingest_material(
         "status": "success",
         "material_id": str(material.id),
         "chunks_created": len(rows),
-        "pages_processed": len(pages),
+        "pages_processed": len(segments),
         "processing_time_ms": elapsed_ms,
     }
 
@@ -197,11 +218,13 @@ def ingest_structured(
 
             material, created = Material.objects.get_or_create(
                 lesson=lesson, file_name=file_name,
-                defaults={"file_path": file_path, "file_type": file_type, "material_type": material_type},
+                defaults={"file_path": file_path, "file_type": file_type,
+                          "source_url": _media_url(file_path), "material_type": material_type},
             )
             if not created:
                 material.file_path = file_path
                 material.file_type = file_type
+                material.source_url = _media_url(file_path)
                 material.material_type = material_type
                 material.save()
                 material.embeddings.all().delete()
@@ -212,6 +235,10 @@ def ingest_structured(
                     material=material, course=course,
                     chunk_text=chunk.text, chunk_index=chunk.chunk_index,
                     page_number=chunk.page_number,
+                    location_kind=chunk.location_kind,
+                    location_value=chunk.location_value,
+                    location_label=chunk.location_label,
+                    file_name=material.file_name,
                     unit_name=unit.name, lesson_name=lesson.name,
                     embedding=all_vectors[v],
                 ))

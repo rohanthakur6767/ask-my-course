@@ -50,7 +50,9 @@ class Material(models.Model):
         lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name="materials")
         file_name = models.CharField(max_length=255)
         file_path = models.CharField(max_length=500, blank=True)  # blank for typed notes (no file)
-        file_type = models.CharField(max_length=50, blank=True)   # pdf, txt, docx
+        file_type = models.CharField(max_length=50, blank=True)   # pdf, docx, pptx
+        # A link to open/download the original file (media URL now, cloud storage later).
+        source_url = models.CharField(max_length=1000, blank=True)
         material_type = models.CharField(
             max_length=20, choices=MaterialType.choices, default=MaterialType.PDF
             )
@@ -81,6 +83,17 @@ class Embedding(models.Model):
 
         # Where the chunk lives, used to build the citation. A typed note has no page.
         page_number = models.PositiveIntegerField(null=True, blank=True)
+
+        # Generalized location so citations work for any file type:
+        #   location_kind  = "page" (PDF) | "slide" (PPTX) | "section" (DOCX)
+        #   location_value = the page/slide number (null for a DOCX section)
+        #   location_label = e.g. a DOCX heading, so we can show "Section: Cell Division"
+        location_kind = models.CharField(max_length=20, blank=True)
+        location_value = models.PositiveIntegerField(null=True, blank=True)
+        location_label = models.CharField(max_length=255, blank=True)
+
+        # The file this chunk came from, copied here for fast, file-centric citations.
+        file_name = models.CharField(max_length=255, blank=True)
 
         # Copied here so we can write "Unit -> Lesson -> Page" without extra lookups.
         unit_name = models.CharField(max_length=255, blank=True)

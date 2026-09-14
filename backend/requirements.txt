@@ -12,8 +12,10 @@ django-cors-headers==4.9.0    # lets the React frontend (a different port) call 
 psycopg2-binary==2.9.12       # the driver Django uses to talk to PostgreSQL
 pgvector==0.5.0               # adds the vector column type and the HNSW similarity index
 
-# --- PDF parsing ---
+# --- Document parsing ---
 PyMuPDF==1.28.2               # opens PDFs and pulls out text page by page (imported as 'fitz')
+python-docx==1.1.2            # reads Word .docx files (text + headings)
+python-pptx==1.0.2            # reads PowerPoint .pptx files (text per slide)
 
 # --- AI ---
 openai==3.7.0                 # OpenAI-compatible client, pointed at Google Gemini

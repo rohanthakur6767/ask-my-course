@@ -22,6 +22,7 @@ from courses.serializers import (
 )
 from courses.services.ingest import ingest_material, ingest_structured, IngestError
 from courses.services.pdf_extractor import PdfExtractionError, extract_pages
+from courses.services.extractors import ExtractionError, SUPPORTED_TYPES, file_type_of
 from courses.services.outliner import propose_outline, OutlineError
 from courses.services.embedder import EmbeddingError
 from courses.services.ask import answer_question, AskError, SMALLTALK_MESSAGE
@@ -201,6 +202,77 @@ class IngestView(APIView):
             return Response({"error": str(error)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(result, status=status.HTTP_201_CREATED)
+
+
+def _unit_from_relpath(rel_path):
+    """Map a folder-upload relative path to a unit name.
+
+    Browsers send paths like 'MyCourse/Unit 1/lecture.pdf' (the first segment is
+    the folder the teacher picked). So the SECOND segment, if any, is the real
+    sub-folder we treat as a Unit; otherwise everything lands under a default.
+    """
+    parts = [p for p in (rel_path or "").replace("\\", "/").split("/") if p]
+    if len(parts) >= 3:          # root / subfolder / file
+        return parts[1]
+    return "Course Materials"
+
+
+class IngestFolderView(APIView):
+    """POST /api/v1/courses/<course_id>/ingest-folder
+
+    Upload many files at once (a whole course folder). Each supported file
+    (PDF / DOCX / PPTX) becomes its own material; sub-folders become units.
+    Processes synchronously for now (a background worker comes in a later phase).
+    """
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, course_id):
+        if not Course.objects.filter(id=course_id).exists():
+            return Response({"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        files = request.FILES.getlist("files")
+        if not files:
+            return Response({"error": "No files uploaded."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Optional parallel list of relative paths (from the browser folder picker).
+        rel_paths = request.data.getlist("paths") if hasattr(request.data, "getlist") else []
+
+        ingested, failed = [], []
+        for i, uploaded in enumerate(files):
+            name = uploaded.name
+            ftype = file_type_of(name)
+            if ftype not in SUPPORTED_TYPES:
+                failed.append({"file": name, "error": f"Unsupported type (.{ftype})"})
+                continue
+
+            rel = rel_paths[i] if i < len(rel_paths) else ""
+            unit_name = _unit_from_relpath(rel)
+            lesson_name = os.path.splitext(os.path.basename(name))[0]
+
+            try:
+                file_path = _save_upload(course_id, uploaded)
+            except Exception as error:
+                failed.append({"file": name, "error": f"Could not save: {error}"})
+                continue
+
+            try:
+                result = ingest_material(
+                    str(course_id), file_path,
+                    unit_name=unit_name, lesson_name=lesson_name,
+                    file_name=name, file_type=ftype,
+                )
+                ingested.append({"file": name, "unit": unit_name,
+                                 "chunks": result["chunks_created"]})
+            except (IngestError, ExtractionError, EmbeddingError) as error:
+                failed.append({"file": name, "error": str(error)})
+
+        return Response({
+            "files_ingested": len(ingested),
+            "files_failed": len(failed),
+            "total_chunks": sum(x["chunks"] for x in ingested),
+            "ingested": ingested,
+            "failed": failed,
+        }, status=status.HTTP_201_CREATED if ingested else status.HTTP_400_BAD_REQUEST)
 
 
 class AskView(APIView):

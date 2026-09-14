@@ -3,6 +3,18 @@
 
 const BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api/v1";
 
+// The backend's origin (BASE without the trailing /api/v1), used to build absolute
+// links to uploaded files (media) that the backend serves.
+export const FILE_BASE = BASE.replace(/\/api\/v1\/?$/, "");
+
+// Turn a source link into an absolute URL the browser can open.
+// Already-absolute (cloud storage) links are returned as-is.
+export function fileUrl(link) {
+  if (!link) return "";
+  if (/^https?:\/\//i.test(link)) return link;
+  return FILE_BASE + link;
+}
+
 export class ApiError extends Error {
   constructor(message, status) {
     super(message);
@@ -69,6 +81,10 @@ export const api = {
   // We do NOT set Content-Type; the browser adds the multipart boundary.
   ingest: (courseId, formData) =>
     request(`/courses/${courseId}/ingest`, { method: "POST", body: formData }),
+
+  // Upload a whole folder: formData carries many "files" (+ optional "paths").
+  ingestFolder: (courseId, formData) =>
+    request(`/courses/${courseId}/ingest-folder`, { method: "POST", body: formData }),
 
   // Step 1 of auto-structure: upload a PDF, get back a proposed outline.
   analyze: (courseId, formData) =>

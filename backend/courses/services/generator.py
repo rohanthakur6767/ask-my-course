@@ -25,11 +25,28 @@ class GenerationError(Exception):
     pass
 
 
+def _loc(c: RetrievedChunk) -> str:
+    """Short location for an excerpt label: 'slide 15' / 'section X' / 'page 42'."""
+    if c.location_kind == "slide" and c.location_value:
+        return f"slide {c.location_value}"
+    if c.location_kind == "section":
+        return f"section {c.location_label}".strip()
+    if c.location_value:
+        return f"page {c.location_value}"
+    if c.page_number:
+        return f"page {c.page_number}"
+    return ""
+
+
 def _build_context(chunks: list[RetrievedChunk]) -> str:
-    """Lay the chunks out as numbered, labelled excerpts for the model."""
+    """Lay the chunks out as numbered, labelled excerpts for the model.
+
+    Each excerpt is tagged with its file and location, so the model can pull
+    from several files and the answer stays grounded across them.
+    """
     parts = []
     for i, c in enumerate(chunks, start=1):
-        label = f"[{i}] {c.unit_name} > {c.lesson_name} (page {c.page_number})"
+        label = f"[{i}] {c.file_name} ({_loc(c)})"
         parts.append(f"{label}\n{c.chunk_text}")
     return "\n\n".join(parts)
 

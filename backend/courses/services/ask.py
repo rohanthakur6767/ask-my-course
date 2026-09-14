@@ -61,6 +61,50 @@ def _looks_like_refusal(answer: str) -> bool:
     return any(hint in low for hint in _REFUSAL_HINTS)
 
 
+def _location_label(c) -> str:
+    """A human-readable location for a citation: 'Page 42' / 'Slide 15' / 'Section: X'."""
+    if c.location_kind == "page" and c.location_value:
+        return f"Page {c.location_value}"
+    if c.location_kind == "slide" and c.location_value:
+        return f"Slide {c.location_value}"
+    if c.location_kind == "section":
+        return f"Section: {c.location_label}" if c.location_label else "Section"
+    if c.page_number:
+        return f"Page {c.page_number}"
+    return ""
+
+
+def _citation_link(c) -> str:
+    """A link that opens the file at the right place. PDFs deep-link to the page;
+    other types open the file (uniform deep-linking comes with the PDF-render phase)."""
+    if not c.source_url:
+        return ""
+    if c.file_type == "pdf" and c.location_value:
+        return f"{c.source_url}#page={c.location_value}"
+    return c.source_url
+
+
+def _build_sources(chunks) -> list[dict]:
+    """Turn retrieved chunks into clean, file-centric citations for the UI."""
+    sources = []
+    for c in chunks:
+        sources.append({
+            "file_name": c.file_name,
+            "file_type": c.file_type,
+            "location_kind": c.location_kind,
+            "location_value": c.location_value,
+            "location_label": _location_label(c),
+            "link": _citation_link(c),
+            "source_url": c.source_url,
+            # kept for backward compatibility with the older citation shape
+            "unit": c.unit_name,
+            "lesson": c.lesson_name,
+            "page": c.page_number,
+            "relevance_score": round(c.score, 3),
+        })
+    return sources
+
+
 def answer_question(course_id: str, question: str, user_id: str = "", top_k: int = 5,
                     conversation_id=None) -> dict:
     """Answer a student's question, grounded only in the course materials.
@@ -119,15 +163,7 @@ def answer_question(course_id: str, question: str, user_id: str = "", top_k: int
             answer = REFUSAL_MESSAGE
             sources = []
         else:
-            sources = [
-                {
-                    "unit": c.unit_name,
-                    "lesson": c.lesson_name,
-                    "page": c.page_number,
-                    "relevance_score": round(c.score, 3),
-                }
-                for c in chunks
-            ]
+            sources = _build_sources(chunks)
 
     confidence = round(top_score, 3)
 

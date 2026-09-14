@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { api } from "../api/client.js";
+import { api, fileUrl } from "../api/client.js";
 import ReactMarkdown from "react-markdown";
 import { Spinner, ErrorBanner, Badge, ConfidenceMeter } from "../components/ui.jsx";
 
@@ -243,15 +243,29 @@ function AnswerBubble({ result }) {
           <div style={{ marginTop: "var(--s4)" }}>
             <div className="card-sub" style={{ marginBottom: "var(--s2)", fontWeight: 600 }}>Sources</div>
             <div className="sources">
-              {shownSources.map((s, i) => (
-                <div key={i} className="source">
-                  <div>
-                    <span className="path">{s.unit} &rsaquo; {s.lesson}</span>
-                    {s.page != null && <span className="page"> · page {s.page}</span>}
+              {shownSources.map((s, i) => {
+                // Only PDFs open inside the browser (at the right page). Word and
+                // PowerPoint can't be shown in a browser, so we offer Download only.
+                const isPdf = (s.file_type || "").toLowerCase() === "pdf";
+                const open = isPdf ? fileUrl(s.link || s.source_url) : "";
+                const download = fileUrl(s.source_url);
+                return (
+                  <div key={i} className="source">
+                    <div style={{ minWidth: 0 }}>
+                      <span className="src-num">Source {i + 1}:</span>{" "}
+                      <span className="path">{s.file_name || `${s.unit} › ${s.lesson}`}</span>
+                      {s.location_label && <span className="page"> &mdash; {s.location_label}</span>}
+                      {(open || download) && (
+                        <span className="src-actions">
+                          {open && <a href={open} target="_blank" rel="noopener noreferrer">Open</a>}
+                          {download && <a href={download} download>Download</a>}
+                        </span>
+                      )}
+                    </div>
+                    <Badge tone="muted">{Math.round((s.relevance_score || 0) * 100)}% match</Badge>
                   </div>
-                  <Badge tone="muted">{Math.round((s.relevance_score || 0) * 100)}% match</Badge>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

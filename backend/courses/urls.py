@@ -6,6 +6,7 @@ from courses.views import (
     HealthView,
     AnalyzeView,
     IngestView,
+    IngestFolderView,
     AskView,
     SuggestionsView,
     CourseStructureView,
@@ -28,6 +29,7 @@ urlpatterns = [
     # Course-scoped actions. <uuid:...> makes Django validate the id for us.
     path("courses/<uuid:course_id>/analyze", AnalyzeView.as_view(), name="analyze"),
     path("courses/<uuid:course_id>/ingest", IngestView.as_view(), name="ingest"),
+    path("courses/<uuid:course_id>/ingest-folder", IngestFolderView.as_view(), name="ingest-folder"),
     path("courses/<uuid:course_id>/ask", AskView.as_view(), name="ask"),
     path("courses/<uuid:course_id>/suggestions", SuggestionsView.as_view(), name="suggestions"),
     path("courses/<uuid:course_id>/structure", CourseStructureView.as_view(), name="structure"),

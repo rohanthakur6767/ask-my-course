@@ -1,8 +1,10 @@
 
-#We chunk PAGE BY PAGE, so every chunk keeps the exact page number it came from.
+#We chunk SEGMENT BY SEGMENT (page / slide / section), so every chunk keeps the
+#exact location it came from - which is what makes precise citations possible.
 from dataclasses import dataclass
 import re
 from courses.services.pdf_extractor import PageText
+from courses.services.extractors import Segment
 
 
 DEFAULT_CHUNK_SIZE_WORDS = 400
@@ -12,9 +14,12 @@ DEFAULT_CHUNK_OVERLAP_WORDS = 60
 @dataclass
 class Chunk:
     """One piece of a material, ready to be embedded."""
-    text: str          # the chunk's text
-    chunk_index: int   # 0, 1, 2... order across the whole material
-    page_number: int   # which page this chunk came from
+    text: str                        # the chunk's text
+    chunk_index: int                 # 0, 1, 2... order across the whole material
+    page_number: int | None          # page/slide number (None for a DOCX section)
+    location_kind: str = "page"      # "page" | "slide" | "section"
+    location_value: int | None = None
+    location_label: str = ""
 
 
 def _count_words(text: str) -> int:
@@ -85,7 +90,41 @@ def chunk_pages(
     for page in pages:
         for chunk_text in _chunk_one_page(page.text, size_words, overlap_words):
             chunks.append(
-                Chunk(text=chunk_text, chunk_index=index, page_number=page.page_number)
+                Chunk(
+                    text=chunk_text, chunk_index=index, page_number=page.page_number,
+                    location_kind="page", location_value=page.page_number, location_label="",
+                )
+            )
+            index += 1
+
+    return chunks
+
+
+def chunk_segments(
+    segments: list[Segment],
+    size_words: int = DEFAULT_CHUNK_SIZE_WORDS,
+    overlap_words: int = DEFAULT_CHUNK_OVERLAP_WORDS,
+) -> list[Chunk]:
+    """Chunk a list of segments (page / slide / section), keeping each chunk's
+    location. This is the multi-format version used by ingestion."""
+    if size_words <= 0:
+        raise ValueError("size_words must be greater than 0")
+    if overlap_words >= size_words:
+        raise ValueError("overlap_words must be smaller than size_words")
+
+    chunks: list[Chunk] = []
+    index = 0
+    for seg in segments:
+        # A page/slide has a numeric page_number; a section does not.
+        page_number = seg.location_value if seg.location_kind in ("page", "slide") else None
+        for chunk_text in _chunk_one_page(seg.text, size_words, overlap_words):
+            chunks.append(
+                Chunk(
+                    text=chunk_text, chunk_index=index, page_number=page_number,
+                    location_kind=seg.location_kind,
+                    location_value=seg.location_value,
+                    location_label=seg.location_label,
+                )
             )
             index += 1
 
