@@ -57,7 +57,7 @@ export default function Layout({ children }) {
           <Crest />
           <span className="brand-text">
             <span className="brand-name">Ask My Course</span>
-            <span className="brand-sub">Eagle LMS</span>
+            <span className="brand-sub">AI Course Assistant</span>
           </span>
         </Link>
 
@@ -73,7 +73,7 @@ export default function Layout({ children }) {
           </div>
         </nav>
 
-        <div className="side-foot">Ask My Course · demo</div>
+        <div className="side-foot">Ask My Course</div>
       </aside>
 
       <div className="backdrop" onClick={close} />
@@ -82,7 +82,7 @@ export default function Layout({ children }) {
         <header className="topbar">
           <button className="menu-btn" onClick={() => setOpen((o) => !o)} aria-label="Toggle menu">≡</button>
           <span className="topbar-title">{title}</span>
-          <span className="user-chip"><span className="ini" aria-hidden="true">DS</span> Demo School</span>
+          <span className="user-chip"><span className="ini" aria-hidden="true">GV</span> Green Valley School</span>
         </header>
         <main className="content">{children}</main>
       </div>

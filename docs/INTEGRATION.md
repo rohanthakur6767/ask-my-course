@@ -1,6 +1,6 @@
-# Integration guide - calling Ask My Course from Eagle LMS
+# Integration guide - calling Ask My Course from your LMS
 
-Ask My Course runs as its own service. Eagle LMS talks to it over HTTP. This guide
+Ask My Course runs as its own service. The host LMS talks to it over HTTP. This guide
 shows how to call it.
 
 ## Base URL
@@ -12,8 +12,8 @@ shows how to call it.
 
 1. A teacher creates a course and uploads materials (the Teacher Dashboard, or
    `POST /courses` then `POST /courses/{id}/ingest`).
-2. A student asks a question: Eagle LMS calls `POST /courses/{id}/ask`.
-3. Eagle LMS shows the answer, the sources, and the confidence.
+2. A student asks a question: the LMS calls `POST /courses/{id}/ask`.
+3. The LMS shows the answer, the sources, and the confidence.
 
 ## Ask a question
 
@@ -39,10 +39,10 @@ Response:
 ```
 
 When the answer is not in the materials, `guardrail_triggered` is `true`,
-`sources` is empty, and `answer` is a polite refusal. Eagle LMS should show the
+`sources` is empty, and `answer` is a polite refusal. The LMS should show the
 refusal rather than treat it as an error.
 
-## Example call (Python, as Eagle LMS would)
+## Example call (Python, as the LMS would)
 
 ```python
 import requests
@@ -74,13 +74,13 @@ def ask_course_question(course_id, question, tenant_id):
 ## Multi-tenancy and auth (planned)
 
 Each course belongs to a tenant (a school). Today a single demo tenant is used.
-For production, Eagle LMS will pass the tenant (e.g. an `X-Tenant-ID` header) and
+For production, the LMS will pass the tenant (e.g. an `X-Tenant-ID` header) and
 a Bearer token; the service will scope every query to that tenant and reject
 unauthenticated calls. The data model already carries `tenant_id`, so enabling
 this is additive.
 
 ## Deployment shape
 
-The service is a container that runs alongside Eagle LMS (for example in ECS),
+The service is a container that runs alongside the LMS (for example in ECS),
 pointed at a PostgreSQL database that has the pgvector extension. See
 `docker-compose.yml` for the local equivalent.

@@ -1,6 +1,6 @@
 # Ask My Course
 
-An AI-powered course Q&A assistant (a RAG microservice) for the Eagle LMS.
+An AI-powered course Q&A assistant (a RAG microservice) that plugs into an LMS.
 Students ask questions in plain language and get answers drawn **only** from that
 course's uploaded materials, with citations (Unit → Lesson → Page) and a
 confidence score. If the answer is not in the materials, it refuses instead of

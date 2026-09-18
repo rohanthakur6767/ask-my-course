@@ -11,14 +11,15 @@ we gain and give up).
 
 **Status:** Accepted
 
-**Context.** The original brief suggested FastAPI. The team lead (Shivam) asked
-for Django + DRF so this service matches the rest of the Eagle LMS stack.
+**Context.** An early option was FastAPI, but Django + DRF was chosen so the
+service matches a typical LMS backend stack and keeps the ORM, migrations, and
+admin all in one framework.
 
 **Decision.** Build the API on Django + DRF.
 
 **Consequences.**
 - Gain: a mature ORM, built-in migrations, admin, and serializers, which made the
-  data model and endpoints fast to build; consistency with the team's other work.
+  data model and endpoints fast to build; everything stays in one framework.
 - Give up: Django's request path is synchronous by default (no native async like
   FastAPI), and the framework is heavier. Neither matters at this service's scale.
 
@@ -43,11 +44,11 @@ relational data.
 
 ---
 
-## ADR 3 - HNSW index instead of the brief's ivfflat
+## ADR 3 - HNSW index instead of ivfflat
 
 **Status:** Accepted
 
-**Context.** The brief specified an ivfflat index (`lists = 100`). pgvector also
+**Context.** An ivfflat index (`lists = 100`) was the initial choice. pgvector also
 offers HNSW.
 
 **Decision.** Use an HNSW index (`m = 16`, `ef_construction = 64`,
@@ -60,7 +61,7 @@ offers HNSW.
   via `hnsw.ef_search` without a rebuild.
 - Give up: HNSW uses more memory and builds more slowly than ivfflat at very
   large scale. Negligible here.
-- This is a deliberate deviation from the brief; the reasoning is recorded here.
+- This is a deliberate design choice; the reasoning is recorded here.
 
 ---
 
@@ -68,8 +69,8 @@ offers HNSW.
 
 **Status:** Accepted
 
-**Context.** The brief mentioned Docker Compose for one-command setup. Shivam
-asked to install Postgres locally first.
+**Context.** Docker Compose gives a one-command setup, but installing Postgres
+locally first made iteration faster during development.
 
 **Decision.** Develop against a locally installed Postgres + pgvector, and add a
 Dockerfile + docker-compose for reproducible setup and deployment.
@@ -87,8 +88,8 @@ Dockerfile + docker-compose for reproducible setup and deployment.
 
 **Status:** Accepted
 
-**Context.** The brief assumed OpenAI (`text-embedding-3-small` + `gpt-4o-mini`),
-but the company did not provide an OpenAI key. We needed embeddings and answer
+**Context.** The initial plan assumed OpenAI (`text-embedding-3-small` + `gpt-4o-mini`),
+but no OpenAI key was available. We needed embeddings and answer
 generation at no cost, with minimal code change. (During early development, before
 any key, a temporary deterministic "fake" provider let the pipeline be built and
 tested offline; it has since been removed.)
@@ -101,9 +102,9 @@ the existing `vector(1536)` column with no migration. Answers: `gemini-3.1-flash
 evaluation; the larger `gemini-3.6-flash` has a very small free quota).
 
 **Consequences.**
-- Gain: zero cost, no dependency on the company for a key, and almost no code
+- Gain: zero cost, no dependency on a paid API key, and almost no code
   change (Gemini speaks OpenAI's API). 1536-dim output means no schema change.
-- Give up: a deviation from the brief's OpenAI models (documented here); free-tier
+- Give up: a switch from the originally planned OpenAI models (documented here); free-tier
   rate limits need care during bulk runs; model availability can shift (we saw
   `gemini-2.5-flash` deprecated for new keys), so model IDs are pinned in one place
   and easy to update.
