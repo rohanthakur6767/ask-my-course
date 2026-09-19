@@ -159,6 +159,18 @@ GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# --- Cloud file storage (optional): Supabase Storage ---
+# When these are set, uploaded course files are pushed to a public Supabase
+# bucket and the citation "Open"/"Download" links point there, so they work on
+# the deployed site (Render's disk is wiped on redeploy). Leave blank for local
+# dev to fall back to serving files from /media/. The service key is secret and
+# must only ever live on the server, never in the frontend.
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")               # e.g. https://xxxx.supabase.co
+# The secret key (server only). Accepts Supabase's own env name SUPABASE_SECRET_KEY,
+# or the older SUPABASE_SERVICE_KEY, so either copy-pastes cleanly.
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SECRET_KEY", "") or os.getenv("SUPABASE_SERVICE_KEY", "")
+SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "course-files")
+
 # One demo tenant (school) until real login / multi-tenant auth exists.
 # Every course created through the API belongs to this tenant for now.
 DEMO_TENANT_ID = "00000000-0000-0000-0000-000000000001"

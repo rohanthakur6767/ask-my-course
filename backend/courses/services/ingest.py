@@ -21,6 +21,7 @@ from courses.services.chunker import chunk_pages, chunk_segments
 from courses.services.extractors import extract_segments, file_type_of
 from courses.services.converter import convert_to_pdf, ConversionError
 from courses.services.embedder import embed_texts
+from courses.services.storage import storage_enabled, upload_file, safe_key
 
 
 # Course-wide materials (like a syllabus) may not belong to a real lesson, so
@@ -30,14 +31,33 @@ DEFAULT_LESSON_NAME = "General"
 
 
 def _media_url(file_path: str) -> str:
-    """Turn a saved file path into a link the browser can open. Works when the
-    file lives under MEDIA_ROOT (local/dev). Cloud storage returns its own URL
-    in a later phase; this stays a safe fallback."""
+    """Turn a saved file path into a link the browser can open, served by Django
+    from MEDIA_ROOT. Works locally; on an ephemeral cloud host use cloud storage
+    (see _file_url). This stays the safe fallback when storage is off."""
     try:
         rel = Path(file_path).resolve().relative_to(Path(settings.MEDIA_ROOT).resolve())
         return settings.MEDIA_URL + str(rel).replace("\\", "/")
     except Exception:
         return ""
+
+
+def _file_url(file_path: str, course_id: str, file_type: str = "", *, as_pdf: bool = False) -> str:
+    """Public URL for a saved file: Supabase Storage when configured (so links
+    work on the deployed site), otherwise the local /media/ URL.
+
+    `as_pdf` marks the viewable-PDF copy (native for PDFs, converted for
+    DOCX/PPTX) so it lands under a separate bucket prefix and is served as a PDF.
+    """
+    if not file_path:
+        return ""
+    if storage_enabled():
+        prefix = "pdf" if as_pdf else "sources"
+        key = safe_key(prefix, course_id, Path(file_path).name)
+        url = upload_file(file_path, key, file_type="pdf" if as_pdf else file_type)
+        if url:
+            return url
+    # Storage off or upload failed: fall back to the local media URL.
+    return _media_url(file_path)
 
 
 class IngestError(Exception):
@@ -121,6 +141,18 @@ def ingest_material(
 
     vectors = embed_texts([chunk.text for chunk in chunks])   # may raise EmbeddingError
 
+    # Publish the files (upload to cloud storage if configured, else a media URL).
+    # Done here, outside the transaction, since an upload is network I/O. For a
+    # native PDF the download and the viewable copy are the same file, so upload
+    # it once and reuse the URL.
+    source_url = _file_url(file_path, str(course.id), file_type=file_type)
+    if pdf_path and Path(pdf_path).resolve() == Path(file_path).resolve():
+        pdf_url = source_url
+    elif pdf_path:
+        pdf_url = _file_url(pdf_path, str(course.id), as_pdf=True)
+    else:
+        pdf_url = ""
+
     # --- Fast database writes, inside ONE transaction (all or nothing) ---
     with transaction.atomic():
         # Fill the hierarchy: reuse the unit/lesson if they exist, else create.
@@ -129,8 +161,6 @@ def ingest_material(
 
         # Reuse the material if this exact file was ingested before (same lesson
         # + same file name), so a re-upload updates it instead of duplicating.
-        source_url = _media_url(file_path)
-        pdf_url = _media_url(pdf_path) if pdf_path else ""
         material, created = Material.objects.get_or_create(
             lesson=lesson,
             file_name=file_name,
@@ -232,6 +262,10 @@ def ingest_structured(
 
     all_vectors = embed_texts(all_texts)   # one batched embedding call for the whole file
 
+    # Publish once (cloud storage or media URL). It is a PDF, so the same file is
+    # both the download and the viewable copy, and every segment shares this URL.
+    url = _file_url(file_path, str(course.id), file_type=file_type)
+
     # --- Fast DB writes inside one transaction ---
     total_chunks = 0
     material_ids = []
@@ -241,7 +275,6 @@ def ingest_structured(
             unit, _ = Unit.objects.get_or_create(course=course, name=unit_name)
             lesson, _ = Lesson.objects.get_or_create(unit=unit, name=lesson_name)
 
-            url = _media_url(file_path)   # a PDF, so it is both the download and the viewable copy
             material, created = Material.objects.get_or_create(
                 lesson=lesson, file_name=file_name,
                 defaults={"file_path": file_path, "file_type": file_type,
