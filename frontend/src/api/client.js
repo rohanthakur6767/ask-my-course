@@ -23,14 +23,35 @@ export class ApiError extends Error {
   }
 }
 
+// --- "Server is waking up" signal --------------------------------------------
+// Free hosting (Render) sleeps after ~15 min idle; the first request then takes
+// 30-60s to cold-start. When any request runs longer than SLOW_AFTER_MS we fire
+// a window event so the UI can show a friendly note instead of a dead spinner.
+// A counter tracks in-flight requests so overlapping calls do not clash.
+const SLOW_AFTER_MS = 4000;
+let _pending = 0;
+
+function _emit(name) {
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(name));
+}
+
 async function request(path, options = {}) {
   let res;
+  const slowTimer = setTimeout(() => _emit("api:slow"), SLOW_AFTER_MS);
+  _pending += 1;
+  const done = () => {
+    clearTimeout(slowTimer);
+    _pending = Math.max(0, _pending - 1);
+    if (_pending === 0) _emit("api:idle");
+  };
   try {
     res = await fetch(`${BASE}${path}`, options);
   } catch {
+    done();
     // Network-level failure: server down, wrong port, no connection.
     throw new ApiError("Cannot reach the server. Is the backend running?", 0);
   }
+  done();
 
   const isJson = (res.headers.get("content-type") || "").includes("application/json");
   const body = isJson ? await res.json().catch(() => null) : null;

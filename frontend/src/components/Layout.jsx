@@ -1,5 +1,29 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
+
+// Shows a friendly note when a request runs long, which on free hosting usually
+// means the backend is cold-starting (see the "api:slow" signal in api/client).
+function WakingBanner() {
+  const [waking, setWaking] = useState(false);
+  useEffect(() => {
+    const onSlow = () => setWaking(true);
+    const onIdle = () => setWaking(false);
+    window.addEventListener("api:slow", onSlow);
+    window.addEventListener("api:idle", onIdle);
+    return () => {
+      window.removeEventListener("api:slow", onSlow);
+      window.removeEventListener("api:idle", onIdle);
+    };
+  }, []);
+  if (!waking) return null;
+  return (
+    <div className="waking-banner" role="status">
+      <span className="waking-dot" aria-hidden="true" />
+      Waking up the server. This demo runs on free hosting that sleeps when idle,
+      so the first request can take up to a minute. Thanks for your patience.
+    </div>
+  );
+}
 
 // A small CSS/SVG crest, no external assets: a shield with a serif monogram.
 function Crest() {
@@ -84,6 +108,7 @@ export default function Layout({ children }) {
           <span className="topbar-title">{title}</span>
           <span className="user-chip"><span className="ini" aria-hidden="true">GV</span> Green Valley School</span>
         </header>
+        <WakingBanner />
         <main className="content">{children}</main>
       </div>
     </div>
